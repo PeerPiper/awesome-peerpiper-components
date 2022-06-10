@@ -14,8 +14,6 @@ const components = globbySync('src/lib/components/**/*.svelte').map((path) => ({
 	component: path.split('/')[path.split('/').length - 1]
 }));
 
-console.log({ components });
-
 const config = components.map(({ namespace, component }) => ({
 	input: `src/lib/components/${namespace}/${component}`,
 	output: {
@@ -40,5 +38,5 @@ const config = components.map(({ namespace, component }) => ({
 		clearScreen: false
 	}
 }));
-console.log({ config });
+
 export default config;
