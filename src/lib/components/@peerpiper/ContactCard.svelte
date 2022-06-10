@@ -1,14 +1,20 @@
 <script>
+	import { onMount } from 'svelte';
+
 	// you can use either props or slots with this component
 	export let name;
 	export let address;
 	export let email;
 	export let notes;
+
+	onMount(async () => {
+		await import('https://cdn.tailwindcss.com');
+	});
 </script>
 
 <svelte:head>
-	<script src="https://cdn.tailwindcss.com"></script>
 	<link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet" />
+	<!-- <script src="https://cdn.tailwindcss.com"></script> -->
 </svelte:head>
 
 <article

@@ -11,10 +11,47 @@ ToDo List
 
 ## Use
 
-Import from Github using jsdelivr:
+✨ See `src/routes/index.svelte` for example usage.
+
+In Svelte:
+
+```svelte
+<script>
+	import { Peerpiper } from '@peerpiper/awesome-peerpiper-components';
+
+	export let name = 'Douglas Anderson';
+	export let address = '247 Main Street, USA';
+</script>
+
+<div>
+	Demo <pre>awesome-peerpiper-components</pre>
+</div>
+
+<Peerpiper.ContactCard>
+	<span slot="name">{name}</span>
+
+	<span slot="address">
+		{address}
+	</span>
+</Peerpiper.ContactCard>
+```
+
+In Vanilla JS, import from Github using jsdelivr then mount [as per Svelte docs](https://svelte.dev/docs#run-time-client-side-component-api):
 
 ```js
-import ContactCard from 'https://cdn.jsdelivr.net/gh/peerpiper/awesome-peerpiper-components@latest/dist/@peerpiper/ContactCard.svelte.js';
+import ContactCard from 'https://cdn.jsdelivr.net/gh/PeerPiper/awesome-peerpiper-components@master/dist/@peerpiper/ContactCard.svelte.js';
+
+const app = new ContactCard({
+	target: document.getElementById('target-div') || document.body,
+	props: {
+		// assuming App.svelte contains something like
+		// `export let answer`:
+		name: 'Doug Anderson',
+		address: '247 Main Street USA'
+	}
+});
+
+<div id="target-div"></div>;
 ```
 
 ## Pull Requests - Add your Awesome PeerPiper Component

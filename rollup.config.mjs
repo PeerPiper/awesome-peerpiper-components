@@ -17,7 +17,7 @@ const components = globbySync('src/lib/components/**/*.svelte').map((path) => ({
 const config = components.map(({ namespace, component }) => ({
 	input: `src/lib/components/${namespace}/${component}`,
 	output: {
-		file: `dist/${namespace}/${component}.js`,
+		file: `compiled/${namespace}/${component}.js`,
 		format: 'es'
 	},
 	plugins: [

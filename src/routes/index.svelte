@@ -3,7 +3,6 @@
 
 	export let name = 'Douglas Anderson';
 	export let address = '247 Main Street, USA';
-	// export let notes = '';
 </script>
 
 <div>
