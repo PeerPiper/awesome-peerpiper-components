@@ -1,6 +1,6 @@
 // import adapter from '@sveltejs/adapter-auto';
 import adapter from '@sveltejs/adapter-static';
-import preprocess from 'svelte-preprocess';
+import sveltePreprocess from 'svelte-preprocess';
 
 import path from 'path';
 import { spawn } from 'child_process';
@@ -24,6 +24,10 @@ process.on('exit', () => {
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
+	preprocess: sveltePreprocess({
+		postcss: true, // set postcss: true if postcss-load-config is installed and svelte-preprocess will look for a PostCSS config file in your project.,
+		globalStyle: {} // enables us to have :global css
+	}),
 	kit: {
 		adapter: adapter({
 			pages: 'docs',
