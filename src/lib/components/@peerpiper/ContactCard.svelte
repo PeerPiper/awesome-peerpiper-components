@@ -37,6 +37,8 @@
 			<span class:missing={!notes}>{notes || 'No notes'}</span>
 		</slot>
 	</div>
+
+	Powered by PeerPiper
 </article>
 
 <style>
