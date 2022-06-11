@@ -1,6 +1,6 @@
 {
 	"name": "@peerpiper/awesome-peerpiper-components",
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"scripts": {
 		"dev": "svelte-kit dev --port 4269",
 		"build": "svelte-kit build",
