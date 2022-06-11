@@ -1,9 +1,11 @@
 // compile individual components into their own es modules
 import svelte from 'rollup-plugin-svelte';
+import sveltePreprocess from 'svelte-preprocess';
 import commonjs from '@rollup/plugin-commonjs';
 import resolve from '@rollup/plugin-node-resolve';
 import { terser } from 'rollup-plugin-terser';
 import { globbySync } from 'globby';
+import css from 'rollup-plugin-css-only';
 
 const production = !process.env.ROLLUP_WATCH;
 const formats = ['es'];
@@ -22,16 +24,22 @@ const config = components.map(({ namespace, component }) => ({
 	},
 	plugins: [
 		svelte({
+			preprocess: sveltePreprocess({
+				sourceMap: !production,
+				postcss: true
+			}),
 			compilerOptions: {
-				dev: !production
+				dev: !production,
+				accessors: true
 			},
-			emitCss: false
+			emitCss: true
 		}),
 		resolve({
 			browser: true,
 			dedupe: ['svelte']
 		}),
 		commonjs(),
+		css({ output: `${component}.css` }),
 		terser()
 	],
 	watch: {
