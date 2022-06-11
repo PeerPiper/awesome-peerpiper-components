@@ -1,0 +1,34 @@
+---
+layout: demo
+title: Make your Data Changable
+author: '@douganderson444'
+---
+
+<script>
+    import Changable from './Changable.svelte';
+
+    export let name = 'Douglas';
+
+    let chg
+
+</script>
+
+{title}
+
+# Want to edit edit your data? Just make it Changable!
+
+```svx
+<script>
+    import Changable from './Changable.svelte';
+    export let name = 'Douglas';
+</script>
+
+<Changable item={{ name }} on:change />;
+```
+
+This component makes the prop item contentEditable, and emits a 'change' event every time it changes,
+so that consuming parents can update their copy of the data.
+
+<Changable item={{name}} on:change={e=>console.log(e.detail)} ></Changable>
+
+{author}

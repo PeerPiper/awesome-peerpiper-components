@@ -1,9 +1,12 @@
 // import adapter from '@sveltejs/adapter-auto';
 import adapter from '@sveltejs/adapter-static';
 import sveltePreprocess from 'svelte-preprocess';
+import { mdsvex } from 'mdsvex';
 
 import path from 'path';
 import { spawn } from 'child_process';
+
+import { highlight } from './prism/prism.js';
 
 // -c : compile only
 // -cw compile and watch for file changes during development
@@ -24,10 +27,30 @@ process.on('exit', () => {
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
-	preprocess: sveltePreprocess({
-		postcss: true, // set postcss: true if postcss-load-config is installed and svelte-preprocess will look for a PostCSS config file in your project.,
-		globalStyle: {} // enables us to have :global css
-	}),
+	extensions: ['.svelte', '.svx', '.md', '.svelte.md'],
+	preprocess: [
+		sveltePreprocess({
+			postcss: true, // set postcss: true if postcss-load-config is installed and svelte-preprocess will look for a PostCSS config file in your project.,
+			scss: true,
+			globalStyle: {} // enables us to have :global css
+		}),
+		mdsvex({
+			extensions: ['.svx', '.md', '.svelte.md'],
+			layout: {
+				demo: 'src/layouts/demo.svelte'
+			},
+			highlight: {
+				alias: {
+					ts: 'typescript',
+					mdx: 'markdown',
+					svelte: 'svelte',
+					svx: 'svx',
+					mdsvex: 'svx',
+					sig: 'ts'
+				}
+			}
+		})
+	],
 	kit: {
 		adapter: adapter({
 			pages: 'docs',
@@ -42,6 +65,11 @@ const config = {
 			resolve: {
 				alias: {
 					'@peerpiper/awesome-peerpiper-components': path.resolve('src/lib')
+				}
+			},
+			server: {
+				fs: {
+					strict: false
 				}
 			}
 		}
