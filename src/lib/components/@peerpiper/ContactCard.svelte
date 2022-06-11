@@ -1,15 +1,15 @@
+<!-- accessors necessary to pass default prop values up to parent by gateway  -->
+<svelte:options accessors />
+
 <script>
+	import '$lib/app.css'; // tailwindcss comes from here
+
 	// you can use either props or slots with this component
 	export let name;
 	export let address;
 	export let email;
 	export let notes;
 </script>
-
-<svelte:head>
-	<link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet" />
-	<script src="https://cdn.tailwindcss.com"></script>
-</svelte:head>
 
 <article
 	class="m-4 w-96 border-solid border border-indigo-600/30 rounded-md shadow-lg shadow-indigo-300/30 p-[1em]"
@@ -26,13 +26,13 @@
 		</slot>
 	</div>
 
-	<div class="email">
+	<div class="leading-tight pl-[1.5em] mb-[.5em]">
 		<slot name="email">
 			<span class:missing={!email}>{email || 'Unknown emails'}</span>
 		</slot>
 	</div>
 
-	<div class="email">
+	<div class="leading-tight pl-[1.5em] mb-[.5em]">
 		<slot>
 			<span class:missing={!notes}>{notes || 'No notes'}</span>
 		</slot>
@@ -41,30 +41,7 @@
 	Powered by PeerPiper
 </article>
 
-<style lang="postcss">
-	/* optional  */
-	/* @tailwind base; */
-	/* @tailwind components; */
-
-	/* mandatory  */
-	/* TODO: All the app's css gets put here, meaning we have unused css we need to purge  */
-	@tailwind utilities;
-
-	.address,
-	.email {
-		padding: 0 0 0 1.5em;
-		background: 0 0 no-repeat;
-		background-size: 20px 20px;
-		margin: 0 0 0.5em 0;
-		line-height: 1.2;
-	}
-
-	.address {
-		background-image: url(/tutorial/icons/map-marker.svg);
-	}
-	.email {
-		background-image: url(/tutorial/icons/email.svg);
-	}
+<style>
 	.missing {
 		color: #999;
 	}
