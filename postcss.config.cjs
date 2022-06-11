@@ -1,8 +1,8 @@
 module.exports = {
 	plugins: {
-		'postcss-import': {}, // so we can use: <style> @import '../app.css' </style>
+		'postcss-import': {}, // so we can use: <style lang="postcss"> @import '../app.css' </style>
 		'tailwindcss/nesting': {},
-		tailwindcss: {},
+		tailwindcss: {}, // so we can use: <style> @tailwind utilities;
 		autoprefixer: {}
 	}
 };
