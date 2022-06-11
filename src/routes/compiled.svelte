@@ -3,6 +3,7 @@
 	 * How to mount a Svelte built es module from the compiled folder
 	 */
 	import { onMount } from 'svelte';
+	import '../../compiled/@peerpiper/ContactCard.svelte.css';
 
 	onMount(async () => {
 		const ContactCard = (await import('../../compiled/@peerpiper/ContactCard.svelte.js')).default;
