@@ -4,13 +4,13 @@
 		<meta charset="utf-8" />
 		<link rel="icon" href="/awesome-peerpiper-components/favicon.ico" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<meta http-equiv="content-security-policy" content=""><link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet" data-svelte="svelte-1e9k33u">
-	<link rel="stylesheet" href="/awesome-peerpiper-components/_app/immutable/assets/pages/index.svelte-a41be52f.css">
-	<link rel="modulepreload" href="/awesome-peerpiper-components/_app/immutable/start-dabe25f9.js">
-	<link rel="modulepreload" href="/awesome-peerpiper-components/_app/immutable/chunks/index-4689be03.js">
+		<meta http-equiv="content-security-policy" content=""><title>Make your Data Changable</title><meta property="og:title" content="Make your Data Changable" data-svelte="svelte-1t7mdn8"><meta property="og:image" data-svelte="svelte-1t7mdn8">
+	<link rel="stylesheet" href="/awesome-peerpiper-components/_app/immutable/assets/pages/index.svelte-85785ab8.css">
+	<link rel="modulepreload" href="/awesome-peerpiper-components/_app/immutable/start-062a9a15.js">
+	<link rel="modulepreload" href="/awesome-peerpiper-components/_app/immutable/chunks/index-01bff9de.js">
 	<link rel="modulepreload" href="/awesome-peerpiper-components/_app/immutable/chunks/preload-helper-fb2eb1ef.js">
-	<link rel="modulepreload" href="/awesome-peerpiper-components/_app/immutable/layout.svelte-d15b144b.js">
-	<link rel="modulepreload" href="/awesome-peerpiper-components/_app/immutable/pages/index.svelte-212aeca9.js">
+	<link rel="modulepreload" href="/awesome-peerpiper-components/_app/immutable/pages/__layout.svelte-1dfb1af4.js">
+	<link rel="modulepreload" href="/awesome-peerpiper-components/_app/immutable/pages/index.svelte-5ad4aa79.js">
 	</head>
 	<body>
 		<div>
@@ -20,26 +20,41 @@
 
 
 
-<article class="m-4 w-96 border-solid border border-indigo-600/30 rounded-md shadow-lg shadow-indigo-300/30 p-[1em]"><h2 class="border-b border-indigo-600/40 pb-[.2em] mb-[1em] shadow-sm"><span slot="name">Douglas Anderson</span></h2>
+<article class="m-4 w-3/4"><h1>Make your Data Changable</h1>
+	<p>Make your Data Changable</p>
+<h1>Want to edit edit your data? Just make it Changable!</h1>
+<pre class="language-svx"><!-- HTML_TAG_START --><code class="language-svx"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>script</span><span class="token punctuation">></span></span><span class="token script"><span class="token language-javascript">
+    <span class="token keyword">import</span> Changable <span class="token keyword">from</span> <span class="token string">'./Changable.svelte'</span><span class="token punctuation">;</span>
+    <span class="token keyword">export</span> <span class="token keyword">let</span> name <span class="token operator">=</span> <span class="token string">'Douglas'</span><span class="token punctuation">;</span>
+</span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>script</span><span class="token punctuation">></span></span>
 
-	<div class="address svelte-nuiuvw"><span slot="address">247 Main Street, USA</span></div>
+<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>Changable</span> <span class="token attr-name">item=</span><span class="token language-javascript"><span class="token punctuation">&#123;</span><span class="token punctuation">&#123;</span> name <span class="token punctuation">&#125;</span><span class="token punctuation">&#125;</span></span> <span class="token attr-name"><span class="token namespace">on:</span>change</span> <span class="token punctuation">/></span></span>;</code><!-- HTML_TAG_END --></pre>
+<p>This component makes the prop item contentEditable, and emits a ‘change’ event every time it changes,
+so that consuming parents can update their copy of the data.</p>
+<span contenteditable>Douglas</span>
+<p>@douganderson444</p>
+	Written by: @douganderson444</article>
 
-	<div class="email svelte-nuiuvw">
-			<span class="svelte-nuiuvw missing">Unknown emails</span>
+<article class="m-4 w-96 border-solid border border-indigo-600/30 rounded-md shadow-lg shadow-indigo-300/30 p-[1em] svelte-1jwpwb7"><h2 class="border-b border-indigo-600/40 pb-[.2em] mb-[1em] shadow-sm svelte-1jwpwb7"><span slot="name">Douglas Anderson</span></h2>
+
+	<div class="address svelte-1jwpwb7"><span slot="address">247 Main Street, USA</span></div>
+
+	<div class="leading-tight pl-[1.5em] mb-[.5em] svelte-1jwpwb7">
+			<span class="svelte-1jwpwb7 missing">Unknown emails</span>
 		</div>
 
-	<div class="email svelte-nuiuvw">
-			<span class="svelte-nuiuvw missing">No notes</span>
+	<div class="leading-tight pl-[1.5em] mb-[.5em] svelte-1jwpwb7">
+			<span class="svelte-1jwpwb7 missing">No notes</span>
 		</div>
 
 	Powered by PeerPiper
 </article>
 
 
-		<script type="module" data-sveltekit-hydrate="ysuh07">
-		import { start } from "/awesome-peerpiper-components/_app/immutable/start-dabe25f9.js";
+		<script type="module" data-sveltekit-hydrate="1hkqfkj">
+		import { start } from "/awesome-peerpiper-components/_app/immutable/start-062a9a15.js";
 		start({
-			target: document.querySelector('[data-sveltekit-hydrate="ysuh07"]').parentNode,
+			target: document.querySelector('[data-sveltekit-hydrate="1hkqfkj"]').parentNode,
 			paths: {"base":"/awesome-peerpiper-components","assets":"/awesome-peerpiper-components"},
 			session: {},
 			route: true,
@@ -48,7 +63,7 @@
 			hydrate: {
 				status: 200,
 				error: null,
-				nodes: [0, 3],
+				nodes: [0, 2],
 				params: {},
 				routeId: ""
 			}
