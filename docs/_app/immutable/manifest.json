@@ -1,63 +1,86 @@
 {
   ".svelte-kit/runtime/client/start.js": {
-    "file": "start-062a9a15.js",
+    "file": "start-48714fa9.js",
     "src": ".svelte-kit/runtime/client/start.js",
     "isEntry": true,
     "imports": [
-      "_index-01bff9de.js",
+      "_index-40bf373d.js",
       "_preload-helper-fb2eb1ef.js"
     ],
     "dynamicImports": [
       "src/routes/__layout.svelte",
       ".svelte-kit/runtime/components/error.svelte",
+      "src/routes/compiled.svelte",
       "src/routes/index.svelte",
       "src/routes/vanilla.svelte"
     ]
   },
   "src/routes/__layout.svelte": {
-    "file": "pages/__layout.svelte-1dfb1af4.js",
+    "file": "pages/__layout.svelte-d7fe16fd.js",
     "src": "src/routes/__layout.svelte",
     "isEntry": true,
     "isDynamicEntry": true,
     "imports": [
-      "_index-01bff9de.js"
+      "_index-40bf373d.js"
     ]
   },
   ".svelte-kit/runtime/components/error.svelte": {
-    "file": "error.svelte-81c87e8b.js",
+    "file": "error.svelte-074892dd.js",
     "src": ".svelte-kit/runtime/components/error.svelte",
     "isEntry": true,
     "isDynamicEntry": true,
     "imports": [
-      "_index-01bff9de.js"
+      "_index-40bf373d.js"
+    ]
+  },
+  "src/routes/compiled.svelte": {
+    "file": "pages/compiled.svelte-529bba3d.js",
+    "src": "src/routes/compiled.svelte",
+    "isEntry": true,
+    "isDynamicEntry": true,
+    "imports": [
+      "_preload-helper-fb2eb1ef.js",
+      "_index-40bf373d.js"
+    ],
+    "dynamicImports": [
+      "compiled/@peerpiper/ContactCard.svelte.js"
     ]
   },
   "src/routes/index.svelte": {
-    "file": "pages/index.svelte-5ad4aa79.js",
+    "file": "pages/index.svelte-6837cb47.js",
     "src": "src/routes/index.svelte",
     "isEntry": true,
     "isDynamicEntry": true,
     "imports": [
-      "_index-01bff9de.js"
+      "_index-40bf373d.js"
     ],
     "css": [
-      "assets/pages/index.svelte-85785ab8.css"
+      "assets/pages/index.svelte-152da68a.css",
+      "assets/app-4d9b0319.css"
     ]
   },
   "src/routes/vanilla.svelte": {
-    "file": "pages/vanilla.svelte-ae150943.js",
+    "file": "pages/vanilla.svelte-7143ee19.js",
     "src": "src/routes/vanilla.svelte",
     "isEntry": true,
     "isDynamicEntry": true,
     "imports": [
       "_preload-helper-fb2eb1ef.js",
-      "_index-01bff9de.js"
+      "_index-40bf373d.js"
     ]
   },
-  "_index-01bff9de.js": {
-    "file": "chunks/index-01bff9de.js"
+  "_index-40bf373d.js": {
+    "file": "chunks/index-40bf373d.js"
   },
   "_preload-helper-fb2eb1ef.js": {
     "file": "chunks/preload-helper-fb2eb1ef.js"
+  },
+  "compiled/@peerpiper/ContactCard.svelte.js": {
+    "file": "chunks/ContactCard.svelte-c6f73bf2.js",
+    "src": "compiled/@peerpiper/ContactCard.svelte.js",
+    "isDynamicEntry": true,
+    "css": [
+      "assets/app-4d9b0319.css"
+    ]
   }
 }
