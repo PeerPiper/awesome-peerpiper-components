@@ -6,24 +6,27 @@ import { mdsvex } from 'mdsvex';
 import path from 'path';
 import { spawn } from 'child_process';
 
+import mm from 'micromatch';
 import { highlight } from './prism/prism.js';
 
 // -c : compile only
 // -cw compile and watch for file changes during development
 const args = process.env.NODE_ENV === 'development' ? '-cw' : '-c';
 
-// rollup the components tocompiled code into /dist/ folder
-let server = spawn('rollup', [args], {
-	stdio: ['ignore', 'inherit', 'inherit'],
-	shell: true
-});
+if (process.env.NODE_ENV !== 'development') {
+	// rollup the components tocompiled code into /dist/ folder
+	let server = spawn('rollup', [args], {
+		stdio: ['ignore', 'inherit', 'inherit'],
+		shell: true
+	});
 
-process.on('SIGTERM', () => {
-	if (server) server.kill(0);
-});
-process.on('exit', () => {
-	if (server) server.kill(0);
-});
+	process.on('SIGTERM', () => {
+		if (server) server.kill(0);
+	});
+	process.on('exit', () => {
+		if (server) server.kill(0);
+	});
+}
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
@@ -60,6 +63,13 @@ const config = {
 		paths: {
 			// change below to your repo name
 			base: process.env.NODE_ENV === 'development' ? '' : '/awesome-peerpiper-components'
+		},
+		package: {
+			exports: (filepath) => {
+				if (filepath.endsWith('.svx')) return false;
+				return mm.isMatch(filepath, ['!**/_*', '!**/internal/**']);
+			},
+			files: mm.matcher('!**/build.*')
 		},
 		vite: {
 			resolve: {

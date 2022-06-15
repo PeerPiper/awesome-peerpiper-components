@@ -10,7 +10,10 @@ import css from 'rollup-plugin-css-only';
 const production = !process.env.ROLLUP_WATCH;
 const formats = ['es'];
 const compPath = 'src/lib/components';
-const components = globbySync('src/lib/components/**/*.svelte').map((path) => ({
+const components = globbySync([
+	'src/lib/components/**/*.svelte',
+	'!src/lib/components/**/_**/*.svelte'
+]).map((path) => ({
 	// get the folder preceding the file name
 	namespace: path.split('/')[path.split('/').length - 2],
 	component: path.split('/')[path.split('/').length - 1]
@@ -32,7 +35,7 @@ const config = components.map(({ namespace, component }) => ({
 				dev: !production,
 				accessors: true
 			},
-			emitCss: true
+			emitCss: false
 		}),
 		resolve({
 			browser: true,
