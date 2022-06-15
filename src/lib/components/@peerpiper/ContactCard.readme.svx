@@ -1,0 +1,61 @@
+---
+layout: demo
+title: Self updating Contact Card
+library: 'Peerpiper'
+author: '@douganderson444'
+description:
+---
+
+<script>
+    // import ContactCard from './ContactCard.svelte';
+    import { Peerpiper } from '@peerpiper/awesome-peerpiper-components';
+
+	export let firstName = 'FirstName';
+	export let lastName = 'LastName';
+	export let address = '123 Main Street USA';
+	export let email = 'coolbeaner@hotmail.com';
+	export let notes = 'Some extra notes here';
+	export let phone = '+1 555-555-1234';
+
+    let chg
+
+</script>
+
+# Want to edit edit your data? Just make it ContactCard!
+
+```svx
+<script>
+    import { Peerpiper } from '@peerpiper/awesome-peerpiper-components';
+
+    export let name = 'First Last Names';
+   	export let address = '123 Main Street USA';
+	export let email = 'coolbeaner@hotmail.com';
+	export let notes = 'Some extra notes here';
+
+</script>
+
+<Peerpiper.ContactCard
+    {name}
+    {address}
+    {email}
+    {notes}
+    {address}
+    on:change />;
+```
+
+## Notes
+
+If you want to be able to edit the property then pass the variable in as a prop.
+
+If you want to use this component to display data only, then use read-only modeby using slotted Content instead of props.
+
+When used with the Gateway, do not assign any action to `on:change`
+
+<Peerpiper.ContactCard slot="example" {firstName} {lastName} {address} {email} {notes} {phone} on:change={e=>console.log(e.detail)} >
+
+<!-- Set address to read only, cannot edit  -->
+<span slot="address">
+{address} (Read Only)
+</span>
+
+</Peerpiper.ContactCard>

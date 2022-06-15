@@ -2,45 +2,117 @@
 <svelte:options accessors />
 
 <script>
+	import { Peerpiper } from '@peerpiper/awesome-peerpiper-components';
+	import Icon from './_ContactCard/Icon.svelte';
+	import Icons from './_ContactCard/Icons.svelte';
+	import Content from './_ContactCard/Content.svelte';
+
+	import Line from './_ContactCard/Line.svelte';
+
 	// you can use either props or slots with this component
-	export let name;
-	export let address;
-	export let email;
-	export let notes;
+	export let firstName = 'FirstName';
+	export let lastName = 'Lastname';
+	export let address = 'Unknown address';
+	export let email = 'Unknown email';
+	export let phone = 'No phone';
+	export let notes = 'No notes';
+	export let avatar;
+
+	let fileinput;
+
+	const onFileSelected = (e) => {
+		let image = e.target.files[0];
+		let reader = new FileReader();
+		reader.readAsDataURL(image);
+		reader.onload = (e) => {
+			avatar = e.target.result;
+		};
+	};
 </script>
 
-<article
-	class="m-4 w-96 border-solid border border-indigo-600/30 rounded-md shadow-lg shadow-indigo-300/30 p-[1em]"
+<div
+	class="m-auto fill-slate-500 my-28 w-96 max-w-lg items-center justify-center overflow-hidden rounded-2xl bg-slate-100 shadow-xl"
 >
-	<h2 class="border-b border-indigo-600 pb-[.2em] mb-[1em] shadow-sm">
+	<div class="h-24 bg-white" />
+	<input
+		style="display:none"
+		type="file"
+		accept=".jpg, .jpeg, .png"
+		on:change={(e) => onFileSelected(e)}
+		bind:this={fileinput}
+	/>
+	<div
+		class="-mt-20 h-32 flex justify-center"
+		on:click={() => {
+			fileinput.click();
+		}}
+	>
+		{#if !avatar}
+			<svg
+				class=" rounded-full bg-white shadow-xl drop-shadow-xl"
+				xmlns="http://www.w3.org/2000/svg"
+				version="1.0"
+				viewBox="0 0 256 256"
+			>
+				<path
+					d="M105 2a129 129 0 0 0 1 253c11 1 33 2 44 0 26-5 48-16 67-35a126 126 0 0 0 38-114A129 129 0 0 0 150 2c-10-2-35-2-45 0zm31 30c23 4 41 24 45 51l3 9 2 6c0 4-1 6-5 14l-7 15c-3 8-11 19-16 24s-5 7-2 13c5 10 13 16 35 23l16 5-3 4a117 117 0 0 1-151 0l-4-4 4-1 17-6c19-6 27-13 31-25l2-5-4-4c-5-6-12-16-15-23l-7-11c-4-6-7-14-7-18 0-3 3-9 5-9l1-3 2-11c6-26 26-43 50-45l8 1z"
+				/>
+			</svg>
+		{:else}
+			<div class="relative z-10 overflow-hidden flex-none mx-auto w-32 h-32 drop-shadow-xl">
+				<img
+					class="rounded-full bg-white absolute max-w-none object-cover"
+					src={avatar}
+					alt="d"
+					style="width: 100%; height: 100%; transform-origin: 50% 50% 0px;"
+				/>
+			</div>
+		{/if}
+	</div>
+	<div class="mt-5 mb-7 px-3 text-center text-xl">
 		<slot name="name">
-			<span class:text-zinc-400={!name}>{name || 'Unknown name'}</span>
+			<Peerpiper.Changable item={{ firstName }} on:change />
+			<Peerpiper.Changable item={{ lastName }} on:change />
 		</slot>
-	</h2>
+	</div>
 
-	<div class="address">
+	<Content name={'address'}>
 		<slot name="address">
-			<span class:text-zinc-400={!address}>{address || 'Unknown address'}</span>
+			<!-- if there is no slot content, make the content changable  -->
+			<!-- if there IS slot content, it overwrites the changable ability  -->
+			<Peerpiper.Changable item={{ address }} on:change />
 		</slot>
-	</div>
+	</Content>
 
-	<div class="leading-tight pl-[1.5em] mb-[.5em]">
+	<Content name={'email'}>
 		<slot name="email">
-			<span class:text-zinc-400={!email}>{email || 'Unknown emails'}</span>
+			<Peerpiper.Changable item={{ email }} on:change />
 		</slot>
-	</div>
+	</Content>
 
-	<div class="leading-tight pl-[1.5em] mb-[.5em]">
-		<slot>
-			<span class:text-zinc-400={!notes}>{notes || 'No notes'}</span>
+	<Content name={'phone'}>
+		<slot name="phone">
+			<Peerpiper.Changable item={{ phone }} on:change />
 		</slot>
-	</div>
+	</Content>
 
-	Powered by PeerPiper
-</article>
+	<blockquote>
+		<p class="mx-2 mb-7 text-center text-base">
+			<slot>
+				<span class="text-sky-500">
+					<Peerpiper.Changable item={{ notes }} options={{ singleLine: false }} on:change />
+				</span>
+			</slot>
+		</p>
+	</blockquote>
+
+	<footer class="text-center bg-green-400 text-white">Powered by PeerPiper</footer>
+</div>
+
+<Icons />
 
 <style>
-	@tailwind base;
-	@tailwind utilities;
+	/* @tailwind base; */
+	/* @tailwind utilities; */
 	/* @tailwind components; */
 </style>
