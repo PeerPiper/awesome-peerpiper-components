@@ -1,6 +1,8 @@
 {
 	"name": "@peerpiper/awesome-peerpiper-components",
 	"version": "0.0.2",
+	"module": "compiled/index.js",
+	"main": "compiled/index.js",
 	"scripts": {
 		"dev": "svelte-kit dev --port 4269",
 		"build": "svelte-kit build",
