@@ -106,7 +106,7 @@
 </div>
 
 <style>
-	/* @tailwind base; */
-	/* @tailwind utilities; */
+	@tailwind base;
+	@tailwind utilities;
 	/* @tailwind components; */
 </style>
