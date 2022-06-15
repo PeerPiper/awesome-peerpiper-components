@@ -2,7 +2,7 @@
 <svelte:options accessors />
 
 <script>
-	import { Peerpiper } from '@peerpiper/awesome-peerpiper-components';
+	import Changable from './Changable.svelte';
 	import Content from './_ContactCard/Content.svelte';
 
 	// you can use either props or slots with this component
@@ -67,36 +67,38 @@
 	</div>
 	<div class="mt-5 mb-7 px-3 text-center text-xl">
 		<slot name="name">
-			<Peerpiper.Changable item={{ firstName }} on:change />
-			<Peerpiper.Changable item={{ lastName }} on:change />
+			<Changable item={{ firstName }} on:change />
+			<Changable item={{ lastName }} on:change />
 		</slot>
 	</div>
 
+	<!-- if there is no slot content, make the content changable  -->
+	<!-- if there IS slot content, it overwrites the changable ability  -->
+
 	<Content name={'address'}>
 		<slot name="address">
-			<!-- if there is no slot content, make the content changable  -->
-			<!-- if there IS slot content, it overwrites the changable ability  -->
-			<Peerpiper.Changable item={{ address }} on:change />
+			<Changable item={{ address }} on:change />
 		</slot>
 	</Content>
 
 	<Content name={'email'}>
 		<slot name="email">
-			<Peerpiper.Changable item={{ email }} on:change />
+			<Changable item={{ email }} on:change />
 		</slot>
 	</Content>
 
 	<Content name={'phone'}>
 		<slot name="phone">
-			<Peerpiper.Changable item={{ phone }} on:change />
+			<Changable item={{ phone }} on:change />
 		</slot>
 	</Content>
 
 	<blockquote>
 		<p class="mx-2 mb-7 text-center text-base">
+			<!-- unnamed slot for remainder of slots, if any  -->
 			<slot>
 				<span class="text-sky-500">
-					<Peerpiper.Changable item={{ notes }} options={{ singleLine: false }} on:change />
+					<Changable item={{ notes }} options={{ singleLine: false }} on:change />
 				</span>
 			</slot>
 		</p>
