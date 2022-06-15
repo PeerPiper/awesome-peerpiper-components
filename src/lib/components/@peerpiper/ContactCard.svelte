@@ -3,11 +3,7 @@
 
 <script>
 	import { Peerpiper } from '@peerpiper/awesome-peerpiper-components';
-	import Icon from './_ContactCard/Icon.svelte';
-	import Icons from './_ContactCard/Icons.svelte';
 	import Content from './_ContactCard/Content.svelte';
-
-	import Line from './_ContactCard/Line.svelte';
 
 	// you can use either props or slots with this component
 	export let firstName = 'FirstName';
@@ -108,8 +104,6 @@
 
 	<footer class="text-center bg-green-400 text-white">Powered by PeerPiper</footer>
 </div>
-
-<Icons />
 
 <style>
 	/* @tailwind base; */

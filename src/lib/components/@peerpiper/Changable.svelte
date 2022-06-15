@@ -13,7 +13,6 @@
 	});
 
 	let { key, value } = makeChangable(item);
-	console.log({ key, value });
 
 	// dispatch the change event when the content is edited
 	$: if (value) dispatch('change', { [key]: value });
