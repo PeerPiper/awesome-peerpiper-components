@@ -3,16 +3,26 @@
 
 <script>
 	import Changable from './Changable.svelte';
+	import Editable from './Editable.svelte';
 	import Content from './_ContactCard/Content.svelte';
+	// import '../../app.css';
+	import { createEventDispatcher } from 'svelte';
+
+	const dispatch = createEventDispatcher();
 
 	// you can use either props or slots with this component
-	export let firstName = 'FirstName';
-	export let lastName = 'Lastname';
-	export let address = 'Unknown address';
-	export let email = 'Unknown email';
-	export let phone = 'No phone';
-	export let notes = 'No notes';
-	export let avatar;
+	export let profile = {
+		firstName: 'FirstName',
+		lastName: 'Lastname',
+		address: 'Unknown address',
+		email: 'Unknown email',
+		phone: 'No phone',
+		notes: 'No notes',
+		avatar: null
+	};
+
+	// this fires when todos change; let's emit an event to update any listeners consuming this component
+	$: if (profile) dispatch('change', { profile });
 
 	let fileinput;
 
@@ -21,7 +31,7 @@
 		let reader = new FileReader();
 		reader.readAsDataURL(image);
 		reader.onload = (e) => {
-			avatar = e.target.result;
+			profile.avatar = e.target.result;
 		};
 	};
 </script>
@@ -43,7 +53,7 @@
 			fileinput.click();
 		}}
 	>
-		{#if !avatar}
+		{#if !profile.avatar}
 			<svg
 				class=" rounded-full bg-white shadow-xl drop-shadow-xl"
 				xmlns="http://www.w3.org/2000/svg"
@@ -58,7 +68,7 @@
 			<div class="relative z-10 overflow-hidden flex-none mx-auto w-32 h-32 drop-shadow-xl">
 				<img
 					class="rounded-full bg-white absolute max-w-none object-cover"
-					src={avatar}
+					src={profile.avatar}
 					alt="d"
 					style="width: 100%; height: 100%; transform-origin: 50% 50% 0px;"
 				/>
@@ -67,8 +77,8 @@
 	</div>
 	<div class="mt-5 mb-7 px-3 text-center text-xl">
 		<slot name="name">
-			<Changable item={{ firstName }} on:change />
-			<Changable item={{ lastName }} on:change />
+			<Editable bind:item={profile.firstName} />
+			<Editable bind:item={profile.lastName} />
 		</slot>
 	</div>
 
@@ -77,19 +87,19 @@
 
 	<Content name={'address'}>
 		<slot name="address">
-			<Changable item={{ address }} on:change />
+			<Editable bind:item={profile.address} />
 		</slot>
 	</Content>
 
 	<Content name={'email'}>
 		<slot name="email">
-			<Changable item={{ email }} on:change />
+			<Editable bind:item={profile.email} />
 		</slot>
 	</Content>
 
 	<Content name={'phone'}>
 		<slot name="phone">
-			<Changable item={{ phone }} on:change />
+			<Editable bind:item={profile.phone} />
 		</slot>
 	</Content>
 
@@ -98,7 +108,7 @@
 			<!-- unnamed slot for remainder of slots, if any  -->
 			<slot>
 				<span class="text-sky-500">
-					<Changable item={{ notes }} options={{ singleLine: false }} on:change />
+					<Editable bind:item={profile.notes} options={{ singleLine: false }} />
 				</span>
 			</slot>
 		</p>
@@ -107,8 +117,10 @@
 	<footer class="text-center bg-green-400 text-white">Powered by PeerPiper</footer>
 </div>
 
-<style>
+<style lang="postcss">
+	/* @import '../../app.css'; */
+	/* Not need for npm run package ? */
 	@tailwind base;
 	@tailwind utilities;
-	/* @tailwind components; */
+	@tailwind components;
 </style>

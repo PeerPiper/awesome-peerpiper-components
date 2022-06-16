@@ -10,13 +10,15 @@ description:
     // import ContactCard from './ContactCard.svelte';
     import { Peerpiper } from '@peerpiper/awesome-peerpiper-components';
 
-	export let firstName = 'FirstName';
-	export let lastName = 'LastName';
-	export let address = '123 Main Street USA';
-	export let email = 'coolbeaner@hotmail.com';
-	export let notes = 'Some extra notes here';
-	export let phone = '+1 555-555-1234';
-
+	export let profile = {
+		firstName: 'FirstName',
+		lastName: 'Lastname',
+		address: 'Unknown address',
+		email: 'Unknown email',
+		phone: 'No phone',
+		notes: 'No notes',
+		avatar: null
+	};
     let chg
 
 </script>
@@ -51,11 +53,11 @@ If you want to use this component to display data only, then use read-only modeb
 
 When used with the Gateway, do not assign any action to `on:change`
 
-<Peerpiper.ContactCard slot="example" {firstName} {lastName} {address} {email} {notes} {phone} on:change={e=>console.log(e.detail)} >
+<Peerpiper.ContactCard slot="example" {profile} on:change={e=>console.log(e.detail)} >
 
 <!-- Set address to read only, cannot edit  -->
 <span slot="address">
-{address} (Read Only)
+{profile.address} (Read Only)
 </span>
 
 </Peerpiper.ContactCard>
