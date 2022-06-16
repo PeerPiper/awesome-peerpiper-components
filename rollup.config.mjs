@@ -45,7 +45,7 @@ const config = components.map(({ namespace, component }) => ({
 			dedupe: ['svelte']
 		}),
 		commonjs(),
-		css({ output: `${component}.css` }),
+		css({ output: `${component.replace('.js', '')}.css` }),
 		terser()
 	],
 	watch: {
