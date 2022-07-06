@@ -1,5 +1,5 @@
 <script>
-	import { onMount, onDestroy, tick, createEventDispatcher } from 'svelte';
+	import { onMount, onDestroy, createEventDispatcher } from 'svelte';
 
 	export let esModule;
 	export let props;
@@ -17,7 +17,6 @@
 	$: if (component && props) setProps();
 
 	async function loadEsModuleComponent() {
-		// console.log({ css });
 		css = css ? `<style>${css}<\/style>` : '';
 
 		// cleanup from prior loads
@@ -35,7 +34,6 @@
 
 		target.innerHTML = '';
 
-		// await tick();
 		component = new App({ target, props: {} });
 
 		// get the default values of component for each of the keys of component.$$.props
