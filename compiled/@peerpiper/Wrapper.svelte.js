@@ -1,4 +1,10 @@
 function noop() { }
+function assign(tar, src) {
+    // @ts-ignore
+    for (const k in src)
+        tar[k] = src[k];
+    return tar;
+}
 function run(fn) {
     return fn();
 }
@@ -17,6 +23,76 @@ function safe_not_equal(a, b) {
 function is_empty(obj) {
     return Object.keys(obj).length === 0;
 }
+function create_slot(definition, ctx, $$scope, fn) {
+    if (definition) {
+        const slot_ctx = get_slot_context(definition, ctx, $$scope, fn);
+        return definition[0](slot_ctx);
+    }
+}
+function get_slot_context(definition, ctx, $$scope, fn) {
+    return definition[1] && fn
+        ? assign($$scope.ctx.slice(), definition[1](fn(ctx)))
+        : $$scope.ctx;
+}
+function get_slot_changes(definition, $$scope, dirty, fn) {
+    if (definition[2] && fn) {
+        const lets = definition[2](fn(dirty));
+        if ($$scope.dirty === undefined) {
+            return lets;
+        }
+        if (typeof lets === 'object') {
+            const merged = [];
+            const len = Math.max($$scope.dirty.length, lets.length);
+            for (let i = 0; i < len; i += 1) {
+                merged[i] = $$scope.dirty[i] | lets[i];
+            }
+            return merged;
+        }
+        return $$scope.dirty | lets;
+    }
+    return $$scope.dirty;
+}
+function update_slot_base(slot, slot_definition, ctx, $$scope, slot_changes, get_slot_context_fn) {
+    if (slot_changes) {
+        const slot_context = get_slot_context(slot_definition, ctx, $$scope, get_slot_context_fn);
+        slot.p(slot_context, slot_changes);
+    }
+}
+function get_all_dirty_from_scope($$scope) {
+    if ($$scope.ctx.length > 32) {
+        const dirty = [];
+        const length = $$scope.ctx.length / 32;
+        for (let i = 0; i < length; i++) {
+            dirty[i] = -1;
+        }
+        return dirty;
+    }
+    return -1;
+}
+function append(target, node) {
+    target.appendChild(node);
+}
+function append_styles(target, style_sheet_id, styles) {
+    const append_styles_to = get_root_for_style(target);
+    if (!append_styles_to.getElementById(style_sheet_id)) {
+        const style = element('style');
+        style.id = style_sheet_id;
+        style.textContent = styles;
+        append_stylesheet(append_styles_to, style);
+    }
+}
+function get_root_for_style(node) {
+    if (!node)
+        return document;
+    const root = node.getRootNode ? node.getRootNode() : node.ownerDocument;
+    if (root && root.host) {
+        return root;
+    }
+    return node.ownerDocument;
+}
+function append_stylesheet(node, style) {
+    append(node.head || node, style);
+}
 function insert(target, node, anchor) {
     target.insertBefore(node, anchor || null);
 }
@@ -25,10 +101,6 @@ function detach(node) {
 }
 function element(name) {
     return document.createElement(name);
-}
-function listen(node, event, handler, options) {
-    node.addEventListener(event, handler, options);
-    return () => node.removeEventListener(event, handler, options);
 }
 function attr(node, attribute, value) {
     if (value == null)
@@ -39,36 +111,10 @@ function attr(node, attribute, value) {
 function children(element) {
     return Array.from(element.childNodes);
 }
-function custom_event(type, detail, { bubbles = false, cancelable = false } = {}) {
-    const e = document.createEvent('CustomEvent');
-    e.initCustomEvent(type, bubbles, cancelable, detail);
-    return e;
-}
 
 let current_component;
 function set_current_component(component) {
     current_component = component;
-}
-function get_current_component() {
-    if (!current_component)
-        throw new Error('Function called outside component initialization');
-    return current_component;
-}
-function createEventDispatcher() {
-    const component = get_current_component();
-    return (type, detail, { cancelable = false } = {}) => {
-        const callbacks = component.$$.callbacks[type];
-        if (callbacks) {
-            // TODO are there situations where events could be dispatched
-            // in a server (non-DOM) environment?
-            const event = custom_event(type, detail, { cancelable });
-            callbacks.slice().forEach(fn => {
-                fn.call(component, event);
-            });
-            return !event.defaultPrevented;
-        }
-        return true;
-    };
 }
 
 const dirty_components = [];
@@ -153,10 +199,27 @@ function update($$) {
     }
 }
 const outroing = new Set();
+let outros;
 function transition_in(block, local) {
     if (block && block.i) {
         outroing.delete(block);
         block.i(local);
+    }
+}
+function transition_out(block, local, detach, callback) {
+    if (block && block.o) {
+        if (outroing.has(block))
+            return;
+        outroing.add(block);
+        outros.c.push(() => {
+            outroing.delete(block);
+            if (callback) {
+                if (detach)
+                    block.d(1);
+                callback();
+            }
+        });
+        block.o(local);
     }
 }
 function mount_component(component, target, anchor, customElement) {
@@ -285,124 +348,80 @@ class SvelteComponent {
     }
 }
 
-/* src\lib\components\@peerpiper\Changable.svelte generated by Svelte v3.48.0 */
+/* src\lib\components\@peerpiper\Wrapper.svelte generated by Svelte v3.48.0 */
+
+function add_css(target) {
+	append_styles(target, "svelte-aolpgd-Wrapper", "@tailwind base;@tailwind components;@tailwind utilities;.svelte-aolpgd-Wrapper,.svelte-aolpgd-Wrapper::before,.svelte-aolpgd-Wrapper::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#E5E7EB}.svelte-aolpgd-Wrapper::before,.svelte-aolpgd-Wrapper::after{--tw-content:''}.svelte-aolpgd-Wrapper:-moz-focusring{outline:auto}.svelte-aolpgd-Wrapper:-moz-ui-invalid{box-shadow:none}.svelte-aolpgd-Wrapper::-webkit-inner-spin-button,.svelte-aolpgd-Wrapper::-webkit-outer-spin-button{height:auto}.svelte-aolpgd-Wrapper::-webkit-search-decoration{-webkit-appearance:none}.svelte-aolpgd-Wrapper::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}.svelte-aolpgd-Wrapper:disabled{cursor:default}.svelte-aolpgd-Wrapper::-webkit-datetime-edit-fields-wrapper{padding:0}.svelte-aolpgd-Wrapper::-webkit-date-and-time-value{min-height:1.5em}.svelte-aolpgd-Wrapper{font-family:ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"Noto Sans\", sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"}.svelte-aolpgd-Wrapper,.svelte-aolpgd-Wrapper::before,.svelte-aolpgd-Wrapper::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(63 131 248 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-aolpgd-Wrapper::-webkit-backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(63 131 248 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-aolpgd-Wrapper::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(63 131 248 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.flex-1.svelte-aolpgd-Wrapper{flex:1 1 0%}@-webkit-keyframes svelte-aolpgd-Wrapper-spin{to{transform:rotate(360deg)}}@keyframes svelte-aolpgd-Wrapper-spin{to{transform:rotate(360deg)}}@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}");
+}
 
 function create_fragment(ctx) {
-	let span;
-	let mounted;
-	let dispose;
+	let div;
+	let current;
+	const default_slot_template = /*#slots*/ ctx[1].default;
+	const default_slot = create_slot(default_slot_template, ctx, /*$$scope*/ ctx[0], null);
 
 	return {
 		c() {
-			span = element("span");
-			attr(span, "contenteditable", "");
-			attr(span, "class", "align-middle");
-			if (/*value*/ ctx[0] === void 0) add_render_callback(() => /*span_input_handler*/ ctx[6].call(span));
+			div = element("div");
+			if (default_slot) default_slot.c();
+			attr(div, "class", "flex-1 svelte-aolpgd-Wrapper");
 		},
 		m(target, anchor) {
-			insert(target, span, anchor);
-			/*span_binding*/ ctx[5](span);
+			insert(target, div, anchor);
 
-			if (/*value*/ ctx[0] !== void 0) {
-				span.textContent = /*value*/ ctx[0];
+			if (default_slot) {
+				default_slot.m(div, null);
 			}
 
-			if (!mounted) {
-				dispose = [
-					listen(span, "input", /*span_input_handler*/ ctx[6]),
-					listen(span, "keydown", /*handleEnter*/ ctx[2])
-				];
-
-				mounted = true;
-			}
+			current = true;
 		},
 		p(ctx, [dirty]) {
-			if (dirty & /*value*/ 1 && /*value*/ ctx[0] !== span.textContent) {
-				span.textContent = /*value*/ ctx[0];
+			if (default_slot) {
+				if (default_slot.p && (!current || dirty & /*$$scope*/ 1)) {
+					update_slot_base(
+						default_slot,
+						default_slot_template,
+						ctx,
+						/*$$scope*/ ctx[0],
+						!current
+						? get_all_dirty_from_scope(/*$$scope*/ ctx[0])
+						: get_slot_changes(default_slot_template, /*$$scope*/ ctx[0], dirty, null),
+						null
+					);
+				}
 			}
 		},
-		i: noop,
-		o: noop,
+		i(local) {
+			if (current) return;
+			transition_in(default_slot, local);
+			current = true;
+		},
+		o(local) {
+			transition_out(default_slot, local);
+			current = false;
+		},
 		d(detaching) {
-			if (detaching) detach(span);
-			/*span_binding*/ ctx[5](null);
-			mounted = false;
-			run_all(dispose);
+			if (detaching) detach(div);
+			if (default_slot) default_slot.d(detaching);
 		}
 	};
 }
 
 function instance($$self, $$props, $$invalidate) {
-	const dispatch = createEventDispatcher();
-	let { item } = $$props;
-	let { options = { singleLine: true } } = $$props;
-	let inputEl;
-
-	const makeChangable = varObj => ({
-		key: Object.keys(varObj)[0],
-		value: varObj[Object.keys(varObj)[0]]
-	});
-
-	let { key, value } = makeChangable(item);
-
-	// by default, if Enter is pressed, the input is blurred
-	const handleEnter = e => {
-		if (e.keyCode === 13 && options.singleLine) {
-			e.preventDefault();
-			inputEl.blur();
-		}
-	};
-
-	function span_binding($$value) {
-		binding_callbacks[$$value ? 'unshift' : 'push'](() => {
-			inputEl = $$value;
-			$$invalidate(1, inputEl);
-		});
-	}
-
-	function span_input_handler() {
-		value = this.textContent;
-		$$invalidate(0, value);
-	}
+	let { $$slots: slots = {}, $$scope } = $$props;
 
 	$$self.$$set = $$props => {
-		if ('item' in $$props) $$invalidate(3, item = $$props.item);
-		if ('options' in $$props) $$invalidate(4, options = $$props.options);
+		if ('$$scope' in $$props) $$invalidate(0, $$scope = $$props.$$scope);
 	};
 
-	$$self.$$.update = () => {
-		if ($$self.$$.dirty & /*value*/ 1) {
-			// dispatch the change event when the content is edited
-			if (value) dispatch('change', { [key]: value });
-		}
-	};
-
-	return [value, inputEl, handleEnter, item, options, span_binding, span_input_handler];
+	return [$$scope, slots];
 }
 
-class Changable extends SvelteComponent {
+class Wrapper extends SvelteComponent {
 	constructor(options) {
 		super();
-		init(this, options, instance, create_fragment, safe_not_equal, { item: 3, options: 4 });
-	}
-
-	get item() {
-		return this.$$.ctx[3];
-	}
-
-	set item(item) {
-		this.$$set({ item });
-		flush();
-	}
-
-	get options() {
-		return this.$$.ctx[4];
-	}
-
-	set options(options) {
-		this.$$set({ options });
-		flush();
+		init(this, options, instance, create_fragment, safe_not_equal, {}, add_css);
 	}
 }
 
-export { Changable as default };
+export { Wrapper as default };

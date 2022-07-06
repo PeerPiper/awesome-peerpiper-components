@@ -1,1 +1,394 @@
-function t(){}function n(t){return t()}function e(){return Object.create(null)}function o(t){t.forEach(n)}function r(t){return"function"==typeof t}function i(t,n){return t!=t?n==n:t!==n||t&&"object"==typeof t||"function"==typeof t}function c(t){t.parentNode.removeChild(t)}function s(t,n,e,o){return t.addEventListener(n,e,o),()=>t.removeEventListener(n,e,o)}function u(t,n,e){null==e?t.removeAttribute(n):t.getAttribute(n)!==e&&t.setAttribute(n,e)}let l;function a(t){l=t}function f(){const t=function(){if(!l)throw new Error("Function called outside component initialization");return l}();return(n,e,{cancelable:o=!1}={})=>{const r=t.$$.callbacks[n];if(r){const i=function(t,n,{bubbles:e=!1,cancelable:o=!1}={}){const r=document.createEvent("CustomEvent");return r.initCustomEvent(t,e,o,n),r}(n,e,{cancelable:o});return r.slice().forEach((n=>{n.call(t,i)})),!i.defaultPrevented}return!0}}const d=[],$=[],p=[],h=[],m=Promise.resolve();let g=!1;function b(t){p.push(t)}const x=new Set;let y=0;function _(){const t=l;do{for(;y<d.length;){const t=d[y];y++,a(t),v(t.$$)}for(a(null),d.length=0,y=0;$.length;)$.pop()();for(let t=0;t<p.length;t+=1){const n=p[t];x.has(n)||(x.add(n),n())}p.length=0}while(d.length);for(;h.length;)h.pop()();g=!1,x.clear(),a(t)}function v(t){if(null!==t.fragment){t.update(),o(t.before_update);const n=t.dirty;t.dirty=[-1],t.fragment&&t.fragment.p(t.ctx,n),t.after_update.forEach(b)}}const E=new Set;function k(t,n){-1===t.$$.dirty[0]&&(d.push(t),g||(g=!0,m.then(_)),t.$$.dirty.fill(0)),t.$$.dirty[n/31|0]|=1<<n%31}function C(i,s,u,f,d,$,p,h=[-1]){const m=l;a(i);const g=i.$$={fragment:null,ctx:null,props:$,update:t,not_equal:d,bound:e(),on_mount:[],on_destroy:[],on_disconnect:[],before_update:[],after_update:[],context:new Map(s.context||(m?m.$$.context:[])),callbacks:e(),dirty:h,skip_bound:!1,root:s.target||m.$$.root};p&&p(g.root);let x=!1;if(g.ctx=u?u(i,s.props||{},((t,n,...e)=>{const o=e.length?e[0]:n;return g.ctx&&d(g.ctx[t],g.ctx[t]=o)&&(!g.skip_bound&&g.bound[t]&&g.bound[t](o),x&&k(i,t)),n})):[],g.update(),x=!0,o(g.before_update),g.fragment=!!f&&f(g.ctx),s.target){if(s.hydrate){const t=function(t){return Array.from(t.childNodes)}(s.target);g.fragment&&g.fragment.l(t),t.forEach(c)}else g.fragment&&g.fragment.c();s.intro&&((y=i.$$.fragment)&&y.i&&(E.delete(y),y.i(v))),function(t,e,i,c){const{fragment:s,on_mount:u,on_destroy:l,after_update:a}=t.$$;s&&s.m(e,i),c||b((()=>{const e=u.map(n).filter(r);l?l.push(...e):o(e),t.$$.on_mount=[]})),a.forEach(b)}(i,s.target,s.anchor,s.customElement),_()}var y,v;a(m)}function w(n){let e,r,i;return{c(){var t;t="span",e=document.createElement(t),u(e,"contenteditable",""),u(e,"class","align-middle"),void 0===n[0]&&b((()=>n[5].call(e)))},m(t,o){!function(t,n,e){t.insertBefore(n,e||null)}(t,e,o),n[4](e),void 0!==n[0]&&(e.textContent=n[0]),r||(i=[s(e,"input",n[5]),s(e,"keydown",n[2])],r=!0)},p(t,[n]){1&n&&t[0]!==e.textContent&&(e.textContent=t[0])},i:t,o:t,d(t){t&&c(e),n[4](null),r=!1,o(i)}}}function A(t,n,e){f();let o,{item:r}=n,{options:i={singleLine:!0}}=n;return t.$$set=t=>{"item"in t&&e(0,r=t.item),"options"in t&&e(3,i=t.options)},[r,o,t=>{13===t.keyCode&&i.singleLine&&(t.preventDefault(),o.blur())},i,function(t){$[t?"unshift":"push"]((()=>{o=t,e(1,o)}))},function(){r=this.textContent,e(0,r)}]}class L extends class{$destroy(){!function(t,n){const e=t.$$;null!==e.fragment&&(o(e.on_destroy),e.fragment&&e.fragment.d(n),e.on_destroy=e.fragment=null,e.ctx=[])}(this,1),this.$destroy=t}$on(t,n){const e=this.$$.callbacks[t]||(this.$$.callbacks[t]=[]);return e.push(n),()=>{const t=e.indexOf(n);-1!==t&&e.splice(t,1)}}$set(t){var n;this.$$set&&(n=t,0!==Object.keys(n).length)&&(this.$$.skip_bound=!0,this.$$set(t),this.$$.skip_bound=!1)}}{constructor(t){super(),C(this,t,A,w,i,{item:0,options:3})}get item(){return this.$$.ctx[0]}set item(t){this.$$set({item:t}),_()}get options(){return this.$$.ctx[3]}set options(t){this.$$set({options:t}),_()}}export{L as default};
+function noop() { }
+function run(fn) {
+    return fn();
+}
+function blank_object() {
+    return Object.create(null);
+}
+function run_all(fns) {
+    fns.forEach(run);
+}
+function is_function(thing) {
+    return typeof thing === 'function';
+}
+function safe_not_equal(a, b) {
+    return a != a ? b == b : a !== b || ((a && typeof a === 'object') || typeof a === 'function');
+}
+function is_empty(obj) {
+    return Object.keys(obj).length === 0;
+}
+function insert(target, node, anchor) {
+    target.insertBefore(node, anchor || null);
+}
+function detach(node) {
+    node.parentNode.removeChild(node);
+}
+function element(name) {
+    return document.createElement(name);
+}
+function listen(node, event, handler, options) {
+    node.addEventListener(event, handler, options);
+    return () => node.removeEventListener(event, handler, options);
+}
+function attr(node, attribute, value) {
+    if (value == null)
+        node.removeAttribute(attribute);
+    else if (node.getAttribute(attribute) !== value)
+        node.setAttribute(attribute, value);
+}
+function children(element) {
+    return Array.from(element.childNodes);
+}
+function custom_event(type, detail, { bubbles = false, cancelable = false } = {}) {
+    const e = document.createEvent('CustomEvent');
+    e.initCustomEvent(type, bubbles, cancelable, detail);
+    return e;
+}
+
+let current_component;
+function set_current_component(component) {
+    current_component = component;
+}
+function get_current_component() {
+    if (!current_component)
+        throw new Error('Function called outside component initialization');
+    return current_component;
+}
+function createEventDispatcher() {
+    const component = get_current_component();
+    return (type, detail, { cancelable = false } = {}) => {
+        const callbacks = component.$$.callbacks[type];
+        if (callbacks) {
+            // TODO are there situations where events could be dispatched
+            // in a server (non-DOM) environment?
+            const event = custom_event(type, detail, { cancelable });
+            callbacks.slice().forEach(fn => {
+                fn.call(component, event);
+            });
+            return !event.defaultPrevented;
+        }
+        return true;
+    };
+}
+
+const dirty_components = [];
+const binding_callbacks = [];
+const render_callbacks = [];
+const flush_callbacks = [];
+const resolved_promise = Promise.resolve();
+let update_scheduled = false;
+function schedule_update() {
+    if (!update_scheduled) {
+        update_scheduled = true;
+        resolved_promise.then(flush);
+    }
+}
+function add_render_callback(fn) {
+    render_callbacks.push(fn);
+}
+// flush() calls callbacks in this order:
+// 1. All beforeUpdate callbacks, in order: parents before children
+// 2. All bind:this callbacks, in reverse order: children before parents.
+// 3. All afterUpdate callbacks, in order: parents before children. EXCEPT
+//    for afterUpdates called during the initial onMount, which are called in
+//    reverse order: children before parents.
+// Since callbacks might update component values, which could trigger another
+// call to flush(), the following steps guard against this:
+// 1. During beforeUpdate, any updated components will be added to the
+//    dirty_components array and will cause a reentrant call to flush(). Because
+//    the flush index is kept outside the function, the reentrant call will pick
+//    up where the earlier call left off and go through all dirty components. The
+//    current_component value is saved and restored so that the reentrant call will
+//    not interfere with the "parent" flush() call.
+// 2. bind:this callbacks cannot trigger new flush() calls.
+// 3. During afterUpdate, any updated components will NOT have their afterUpdate
+//    callback called a second time; the seen_callbacks set, outside the flush()
+//    function, guarantees this behavior.
+const seen_callbacks = new Set();
+let flushidx = 0; // Do *not* move this inside the flush() function
+function flush() {
+    const saved_component = current_component;
+    do {
+        // first, call beforeUpdate functions
+        // and update components
+        while (flushidx < dirty_components.length) {
+            const component = dirty_components[flushidx];
+            flushidx++;
+            set_current_component(component);
+            update(component.$$);
+        }
+        set_current_component(null);
+        dirty_components.length = 0;
+        flushidx = 0;
+        while (binding_callbacks.length)
+            binding_callbacks.pop()();
+        // then, once components are updated, call
+        // afterUpdate functions. This may cause
+        // subsequent updates...
+        for (let i = 0; i < render_callbacks.length; i += 1) {
+            const callback = render_callbacks[i];
+            if (!seen_callbacks.has(callback)) {
+                // ...so guard against infinite loops
+                seen_callbacks.add(callback);
+                callback();
+            }
+        }
+        render_callbacks.length = 0;
+    } while (dirty_components.length);
+    while (flush_callbacks.length) {
+        flush_callbacks.pop()();
+    }
+    update_scheduled = false;
+    seen_callbacks.clear();
+    set_current_component(saved_component);
+}
+function update($$) {
+    if ($$.fragment !== null) {
+        $$.update();
+        run_all($$.before_update);
+        const dirty = $$.dirty;
+        $$.dirty = [-1];
+        $$.fragment && $$.fragment.p($$.ctx, dirty);
+        $$.after_update.forEach(add_render_callback);
+    }
+}
+const outroing = new Set();
+function transition_in(block, local) {
+    if (block && block.i) {
+        outroing.delete(block);
+        block.i(local);
+    }
+}
+function mount_component(component, target, anchor, customElement) {
+    const { fragment, on_mount, on_destroy, after_update } = component.$$;
+    fragment && fragment.m(target, anchor);
+    if (!customElement) {
+        // onMount happens before the initial afterUpdate
+        add_render_callback(() => {
+            const new_on_destroy = on_mount.map(run).filter(is_function);
+            if (on_destroy) {
+                on_destroy.push(...new_on_destroy);
+            }
+            else {
+                // Edge case - component was destroyed immediately,
+                // most likely as a result of a binding initialising
+                run_all(new_on_destroy);
+            }
+            component.$$.on_mount = [];
+        });
+    }
+    after_update.forEach(add_render_callback);
+}
+function destroy_component(component, detaching) {
+    const $$ = component.$$;
+    if ($$.fragment !== null) {
+        run_all($$.on_destroy);
+        $$.fragment && $$.fragment.d(detaching);
+        // TODO null out other refs, including component.$$ (but need to
+        // preserve final state?)
+        $$.on_destroy = $$.fragment = null;
+        $$.ctx = [];
+    }
+}
+function make_dirty(component, i) {
+    if (component.$$.dirty[0] === -1) {
+        dirty_components.push(component);
+        schedule_update();
+        component.$$.dirty.fill(0);
+    }
+    component.$$.dirty[(i / 31) | 0] |= (1 << (i % 31));
+}
+function init(component, options, instance, create_fragment, not_equal, props, append_styles, dirty = [-1]) {
+    const parent_component = current_component;
+    set_current_component(component);
+    const $$ = component.$$ = {
+        fragment: null,
+        ctx: null,
+        // state
+        props,
+        update: noop,
+        not_equal,
+        bound: blank_object(),
+        // lifecycle
+        on_mount: [],
+        on_destroy: [],
+        on_disconnect: [],
+        before_update: [],
+        after_update: [],
+        context: new Map(options.context || (parent_component ? parent_component.$$.context : [])),
+        // everything else
+        callbacks: blank_object(),
+        dirty,
+        skip_bound: false,
+        root: options.target || parent_component.$$.root
+    };
+    append_styles && append_styles($$.root);
+    let ready = false;
+    $$.ctx = instance
+        ? instance(component, options.props || {}, (i, ret, ...rest) => {
+            const value = rest.length ? rest[0] : ret;
+            if ($$.ctx && not_equal($$.ctx[i], $$.ctx[i] = value)) {
+                if (!$$.skip_bound && $$.bound[i])
+                    $$.bound[i](value);
+                if (ready)
+                    make_dirty(component, i);
+            }
+            return ret;
+        })
+        : [];
+    $$.update();
+    ready = true;
+    run_all($$.before_update);
+    // `false` as a special case of no DOM component
+    $$.fragment = create_fragment ? create_fragment($$.ctx) : false;
+    if (options.target) {
+        if (options.hydrate) {
+            const nodes = children(options.target);
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            $$.fragment && $$.fragment.l(nodes);
+            nodes.forEach(detach);
+        }
+        else {
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            $$.fragment && $$.fragment.c();
+        }
+        if (options.intro)
+            transition_in(component.$$.fragment);
+        mount_component(component, options.target, options.anchor, options.customElement);
+        flush();
+    }
+    set_current_component(parent_component);
+}
+/**
+ * Base class for Svelte components. Used when dev=false.
+ */
+class SvelteComponent {
+    $destroy() {
+        destroy_component(this, 1);
+        this.$destroy = noop;
+    }
+    $on(type, callback) {
+        const callbacks = (this.$$.callbacks[type] || (this.$$.callbacks[type] = []));
+        callbacks.push(callback);
+        return () => {
+            const index = callbacks.indexOf(callback);
+            if (index !== -1)
+                callbacks.splice(index, 1);
+        };
+    }
+    $set($$props) {
+        if (this.$$set && !is_empty($$props)) {
+            this.$$.skip_bound = true;
+            this.$$set($$props);
+            this.$$.skip_bound = false;
+        }
+    }
+}
+
+/* src\lib\components\@peerpiper\Editable.svelte generated by Svelte v3.48.0 */
+
+function create_fragment(ctx) {
+	let span;
+	let mounted;
+	let dispose;
+
+	return {
+		c() {
+			span = element("span");
+			attr(span, "contenteditable", "");
+			attr(span, "class", "align-middle");
+			if (/*item*/ ctx[0] === void 0) add_render_callback(() => /*span_input_handler*/ ctx[5].call(span));
+		},
+		m(target, anchor) {
+			insert(target, span, anchor);
+			/*span_binding*/ ctx[4](span);
+
+			if (/*item*/ ctx[0] !== void 0) {
+				span.textContent = /*item*/ ctx[0];
+			}
+
+			if (!mounted) {
+				dispose = [
+					listen(span, "input", /*span_input_handler*/ ctx[5]),
+					listen(span, "keydown", /*handleEnter*/ ctx[2])
+				];
+
+				mounted = true;
+			}
+		},
+		p(ctx, [dirty]) {
+			if (dirty & /*item*/ 1 && /*item*/ ctx[0] !== span.textContent) {
+				span.textContent = /*item*/ ctx[0];
+			}
+		},
+		i: noop,
+		o: noop,
+		d(detaching) {
+			if (detaching) detach(span);
+			/*span_binding*/ ctx[4](null);
+			mounted = false;
+			run_all(dispose);
+		}
+	};
+}
+
+function instance($$self, $$props, $$invalidate) {
+	createEventDispatcher();
+	let { item } = $$props;
+	let { options = { singleLine: true } } = $$props;
+	let inputEl;
+
+	// by default, if Enter is pressed, the input is blurred
+	const handleEnter = e => {
+		if (e.keyCode === 13 && options.singleLine) {
+			e.preventDefault();
+			inputEl.blur();
+		}
+	};
+
+	function span_binding($$value) {
+		binding_callbacks[$$value ? 'unshift' : 'push'](() => {
+			inputEl = $$value;
+			$$invalidate(1, inputEl);
+		});
+	}
+
+	function span_input_handler() {
+		item = this.textContent;
+		$$invalidate(0, item);
+	}
+
+	$$self.$$set = $$props => {
+		if ('item' in $$props) $$invalidate(0, item = $$props.item);
+		if ('options' in $$props) $$invalidate(3, options = $$props.options);
+	};
+
+	return [item, inputEl, handleEnter, options, span_binding, span_input_handler];
+}
+
+class Editable extends SvelteComponent {
+	constructor(options) {
+		super();
+		init(this, options, instance, create_fragment, safe_not_equal, { item: 0, options: 3 });
+	}
+
+	get item() {
+		return this.$$.ctx[0];
+	}
+
+	set item(item) {
+		this.$$set({ item });
+		flush();
+	}
+
+	get options() {
+		return this.$$.ctx[3];
+	}
+
+	set options(options) {
+		this.$$set({ options });
+		flush();
+	}
+}
+
+export { Editable as default };
