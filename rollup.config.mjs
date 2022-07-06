@@ -20,7 +20,7 @@ const compPath = 'src/lib/components';
 // build a list of components to individually compile
 const components = globbySync([
 	'src/lib/components/**/*.svelte', // include all svelte components
-	'!src/lib/components/**/_**/*.svelte', // exclude sub-components
+	// '!src/lib/components/**/_**/*.svelte', // exclude sub-components
 	'!src/lib/components/**/_*.svelte' // exclude sub-components
 ]).map((path) => ({
 	// get the folder preceding the file name
