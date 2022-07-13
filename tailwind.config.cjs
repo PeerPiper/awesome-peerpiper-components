@@ -5,7 +5,11 @@ module.exports = {
 		'./node_modules/flowbite-svelte/**/*.{html,js,svelte,ts}'
 	],
 	theme: {
-		extend: {}
+		extend: {
+			colors: {
+				toxic: '#0eff02'
+			}
+		}
 	},
 	plugins: [require('flowbite/plugin')],
 	darkMode: 'class'
