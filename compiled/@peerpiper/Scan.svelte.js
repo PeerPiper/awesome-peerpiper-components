@@ -1,5 +1,4 @@
 function noop() { }
-const identity = x => x;
 function assign(tar, src) {
     // @ts-ignore
     for (const k in src)
@@ -87,41 +86,6 @@ function set_store_value(store, ret, value) {
     store.set(value);
     return ret;
 }
-
-const is_client = typeof window !== 'undefined';
-let now = is_client
-    ? () => window.performance.now()
-    : () => Date.now();
-let raf = is_client ? cb => requestAnimationFrame(cb) : noop;
-
-const tasks = new Set();
-function run_tasks(now) {
-    tasks.forEach(task => {
-        if (!task.c(now)) {
-            tasks.delete(task);
-            task.f();
-        }
-    });
-    if (tasks.size !== 0)
-        raf(run_tasks);
-}
-/**
- * Creates a new task that runs on each raf frame
- * until it returns a falsy value or is aborted
- */
-function loop(callback) {
-    let task;
-    if (tasks.size === 0)
-        raf(run_tasks);
-    return {
-        promise: new Promise(fulfill => {
-            tasks.add(task = { c: callback, f: fulfill });
-        }),
-        abort() {
-            tasks.delete(task);
-        }
-    };
-}
 function append(target, node) {
     target.appendChild(node);
 }
@@ -142,11 +106,6 @@ function get_root_for_style(node) {
         return root;
     }
     return node.ownerDocument;
-}
-function append_empty_stylesheet(node) {
-    const style_element = element('style');
-    append_stylesheet(get_root_for_style(node), style_element);
-    return style_element.sheet;
 }
 function append_stylesheet(node, style) {
     append(node.head || node, style);
@@ -193,9 +152,6 @@ function set_data(text, data) {
     if (text.wholeText !== data)
         text.data = data;
 }
-function set_input_value(input, value) {
-    input.value = value == null ? '' : value;
-}
 function set_style(node, key, value, important) {
     if (value === null) {
         node.style.removeProperty(key);
@@ -211,141 +167,6 @@ function custom_event(type, detail, { bubbles = false, cancelable = false } = {}
     const e = document.createEvent('CustomEvent');
     e.initCustomEvent(type, bubbles, cancelable, detail);
     return e;
-}
-
-// we need to store the information for multiple documents because a Svelte application could also contain iframes
-// https://github.com/sveltejs/svelte/issues/3624
-const managed_styles = new Map();
-let active = 0;
-// https://github.com/darkskyapp/string-hash/blob/master/index.js
-function hash(str) {
-    let hash = 5381;
-    let i = str.length;
-    while (i--)
-        hash = ((hash << 5) - hash) ^ str.charCodeAt(i);
-    return hash >>> 0;
-}
-function create_style_information(doc, node) {
-    const info = { stylesheet: append_empty_stylesheet(node), rules: {} };
-    managed_styles.set(doc, info);
-    return info;
-}
-function create_rule(node, a, b, duration, delay, ease, fn, uid = 0) {
-    const step = 16.666 / duration;
-    let keyframes = '{\n';
-    for (let p = 0; p <= 1; p += step) {
-        const t = a + (b - a) * ease(p);
-        keyframes += p * 100 + `%{${fn(t, 1 - t)}}\n`;
-    }
-    const rule = keyframes + `100% {${fn(b, 1 - b)}}\n}`;
-    const name = `__svelte_${hash(rule)}_${uid}`;
-    const doc = get_root_for_style(node);
-    const { stylesheet, rules } = managed_styles.get(doc) || create_style_information(doc, node);
-    if (!rules[name]) {
-        rules[name] = true;
-        stylesheet.insertRule(`@keyframes ${name} ${rule}`, stylesheet.cssRules.length);
-    }
-    const animation = node.style.animation || '';
-    node.style.animation = `${animation ? `${animation}, ` : ''}${name} ${duration}ms linear ${delay}ms 1 both`;
-    active += 1;
-    return name;
-}
-function delete_rule(node, name) {
-    const previous = (node.style.animation || '').split(', ');
-    const next = previous.filter(name
-        ? anim => anim.indexOf(name) < 0 // remove specific animation
-        : anim => anim.indexOf('__svelte') === -1 // remove all Svelte animations
-    );
-    const deleted = previous.length - next.length;
-    if (deleted) {
-        node.style.animation = next.join(', ');
-        active -= deleted;
-        if (!active)
-            clear_rules();
-    }
-}
-function clear_rules() {
-    raf(() => {
-        if (active)
-            return;
-        managed_styles.forEach(info => {
-            const { stylesheet } = info;
-            let i = stylesheet.cssRules.length;
-            while (i--)
-                stylesheet.deleteRule(i);
-            info.rules = {};
-        });
-        managed_styles.clear();
-    });
-}
-
-function create_animation(node, from, fn, params) {
-    if (!from)
-        return noop;
-    const to = node.getBoundingClientRect();
-    if (from.left === to.left && from.right === to.right && from.top === to.top && from.bottom === to.bottom)
-        return noop;
-    const { delay = 0, duration = 300, easing = identity, 
-    // @ts-ignore todo: should this be separated from destructuring? Or start/end added to public api and documentation?
-    start: start_time = now() + delay, 
-    // @ts-ignore todo:
-    end = start_time + duration, tick = noop, css } = fn(node, { from, to }, params);
-    let running = true;
-    let started = false;
-    let name;
-    function start() {
-        if (css) {
-            name = create_rule(node, 0, 1, duration, delay, easing, css);
-        }
-        if (!delay) {
-            started = true;
-        }
-    }
-    function stop() {
-        if (css)
-            delete_rule(node, name);
-        running = false;
-    }
-    loop(now => {
-        if (!started && now >= start_time) {
-            started = true;
-        }
-        if (started && now >= end) {
-            tick(1, 0);
-            stop();
-        }
-        if (!running) {
-            return false;
-        }
-        if (started) {
-            const p = now - start_time;
-            const t = 0 + 1 * easing(p / duration);
-            tick(t, 1 - t);
-        }
-        return true;
-    });
-    start();
-    tick(0, 1);
-    return stop;
-}
-function fix_position(node) {
-    const style = getComputedStyle(node);
-    if (style.position !== 'absolute' && style.position !== 'fixed') {
-        const { width, height } = style;
-        const a = node.getBoundingClientRect();
-        node.style.position = 'absolute';
-        node.style.width = width;
-        node.style.height = height;
-        add_transform(node, a);
-    }
-}
-function add_transform(node, a) {
-    const b = node.getBoundingClientRect();
-    if (a.left !== b.left || a.top !== b.top) {
-        const style = getComputedStyle(node);
-        const transform = style.transform === 'none' ? '' : style.transform;
-        node.style.transform = `${transform} translate(${a.left - b.left}px, ${a.top - b.top}px)`;
-    }
 }
 
 let current_component;
@@ -499,90 +320,6 @@ function transition_out(block, local, detach, callback) {
     }
 }
 
-function destroy_block(block, lookup) {
-    block.d(1);
-    lookup.delete(block.key);
-}
-function fix_and_destroy_block(block, lookup) {
-    block.f();
-    destroy_block(block, lookup);
-}
-function update_keyed_each(old_blocks, dirty, get_key, dynamic, ctx, list, lookup, node, destroy, create_each_block, next, get_context) {
-    let o = old_blocks.length;
-    let n = list.length;
-    let i = o;
-    const old_indexes = {};
-    while (i--)
-        old_indexes[old_blocks[i].key] = i;
-    const new_blocks = [];
-    const new_lookup = new Map();
-    const deltas = new Map();
-    i = n;
-    while (i--) {
-        const child_ctx = get_context(ctx, list, i);
-        const key = get_key(child_ctx);
-        let block = lookup.get(key);
-        if (!block) {
-            block = create_each_block(key, child_ctx);
-            block.c();
-        }
-        else if (dynamic) {
-            block.p(child_ctx, dirty);
-        }
-        new_lookup.set(key, new_blocks[i] = block);
-        if (key in old_indexes)
-            deltas.set(key, Math.abs(i - old_indexes[key]));
-    }
-    const will_move = new Set();
-    const did_move = new Set();
-    function insert(block) {
-        transition_in(block, 1);
-        block.m(node, next);
-        lookup.set(block.key, block);
-        next = block.first;
-        n--;
-    }
-    while (o && n) {
-        const new_block = new_blocks[n - 1];
-        const old_block = old_blocks[o - 1];
-        const new_key = new_block.key;
-        const old_key = old_block.key;
-        if (new_block === old_block) {
-            // do nothing
-            next = new_block.first;
-            o--;
-            n--;
-        }
-        else if (!new_lookup.has(old_key)) {
-            // remove old block
-            destroy(old_block, lookup);
-            o--;
-        }
-        else if (!lookup.has(new_key) || will_move.has(new_key)) {
-            insert(new_block);
-        }
-        else if (did_move.has(old_key)) {
-            o--;
-        }
-        else if (deltas.get(new_key) > deltas.get(old_key)) {
-            did_move.add(new_key);
-            insert(new_block);
-        }
-        else {
-            will_move.add(old_key);
-            o--;
-        }
-    }
-    while (o--) {
-        const old_block = old_blocks[o];
-        if (!new_lookup.has(old_block.key))
-            destroy(old_block, lookup);
-    }
-    while (n)
-        insert(new_blocks[n - 1]);
-    return new_blocks;
-}
-
 function bind(component, name, callback) {
     const index = component.$$.props[name];
     if (index !== undefined) {
@@ -719,38 +456,9 @@ class SvelteComponent {
     }
 }
 
-function cubicOut(t) {
-    const f = t - 1.0;
-    return f * f * f + 1.0;
-}
-function quintOut(t) {
-    return --t * t * t * t * t + 1;
-}
-
-function flip(node, { from, to }, params = {}) {
-    const style = getComputedStyle(node);
-    const transform = style.transform === 'none' ? '' : style.transform;
-    const [ox, oy] = style.transformOrigin.split(' ').map(parseFloat);
-    const dx = (from.left + from.width * ox / to.width) - (to.left + ox);
-    const dy = (from.top + from.height * oy / to.height) - (to.top + oy);
-    const { delay = 0, duration = (d) => Math.sqrt(d) * 120, easing = cubicOut } = params;
-    return {
-        delay,
-        duration: is_function(duration) ? duration(Math.sqrt(dx * dx + dy * dy)) : duration,
-        easing,
-        css: (t, u) => {
-            const x = u * dx;
-            const y = u * dy;
-            const sx = t + u * from.width / to.width;
-            const sy = t + u * from.height / to.height;
-            return `transform: ${transform} translate(${x}px, ${y}px) scale(${sx}, ${sy});`;
-        }
-    };
-}
-
 /* src\lib\components\@peerpiper\Icons.svelte generated by Svelte v3.48.0 */
 
-function create_fragment$7(ctx) {
+function create_fragment$6(ctx) {
 	let div;
 
 	return {
@@ -774,17 +482,17 @@ function create_fragment$7(ctx) {
 class Icons extends SvelteComponent {
 	constructor(options) {
 		super();
-		init(this, options, null, create_fragment$7, safe_not_equal, {});
+		init(this, options, null, create_fragment$6, safe_not_equal, {});
 	}
 }
 
 /* src\lib\components\@peerpiper\Icon.svelte generated by Svelte v3.48.0 */
 
-function add_css$6(target) {
-	append_styles(target, "svelte-wkpedn-ContactList", ".icon.svelte-wkpedn-ContactList{position:relative;overflow:hidden;vertical-align:middle;-o-object-fit:contain;object-fit:contain;transform-origin:center center;stroke:currentColor;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;fill:currentColor}");
+function add_css$5(target) {
+	append_styles(target, "svelte-16bbywc-Scan", ".icon.svelte-16bbywc-Scan{position:relative;overflow:hidden;vertical-align:middle;-o-object-fit:contain;object-fit:contain;transform-origin:center center;stroke:currentColor;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;fill:currentColor}");
 }
 
-function create_fragment$6(ctx) {
+function create_fragment$5(ctx) {
 	let svg;
 	let use;
 	let use_xlink_href_value;
@@ -807,7 +515,7 @@ function create_fragment$6(ctx) {
 			xlink_attr(use, "xlink:href", use_xlink_href_value = "#" + /*name*/ ctx[0]);
 			attr(svg, "width", /*size*/ ctx[1]);
 			attr(svg, "height", /*size*/ ctx[1]);
-			attr(svg, "class", "icon  svelte-wkpedn-ContactList");
+			attr(svg, "class", "icon  svelte-16bbywc-Scan");
 		},
 		m(target, anchor) {
 			insert(target, svg, anchor);
@@ -871,7 +579,7 @@ function create_fragment$6(ctx) {
 	};
 }
 
-function instance$6($$self, $$props, $$invalidate) {
+function instance$5($$self, $$props, $$invalidate) {
 	let { $$slots: slots = {}, $$scope } = $$props;
 	let { name } = $$props;
 	let { size = '100%' } = $$props;
@@ -888,7 +596,7 @@ function instance$6($$self, $$props, $$invalidate) {
 class Icon extends SvelteComponent {
 	constructor(options) {
 		super();
-		init(this, options, instance$6, create_fragment$6, safe_not_equal, { name: 0, size: 1 }, add_css$6);
+		init(this, options, instance$5, create_fragment$5, safe_not_equal, { name: 0, size: 1 }, add_css$5);
 	}
 
 	get name() {
@@ -912,11 +620,11 @@ class Icon extends SvelteComponent {
 
 /* src\lib\components\@peerpiper\Modal.svelte generated by Svelte v3.48.0 */
 
-function add_css$5(target) {
-	append_styles(target, "svelte-7dgeyu-ContactList", ".hide.svelte-7dgeyu-ContactList{display:none}.modal.svelte-7dgeyu-ContactList{display:block;position:fixed;z-index:99999;left:0;top:0;width:100%;height:100%;overflow:auto;background-color:rgb(0, 0, 0);background-color:rgba(0, 0, 0, 0.4)}.modal-content.svelte-7dgeyu-ContactList{background-color:#fefefe;margin:15% auto;padding:20px;border:1px solid #888;width:80%}.close.svelte-7dgeyu-ContactList{color:#aaa;float:right;font-size:3.5em;font-weight:bold;line-height:0.5;padding:0.25em}.close.svelte-7dgeyu-ContactList:hover,.close.svelte-7dgeyu-ContactList:focus{color:black;text-decoration:none;cursor:pointer}");
+function add_css$4(target) {
+	append_styles(target, "svelte-16wr8tb-Scan", ".hide.svelte-16wr8tb-Scan{display:none}.modal.svelte-16wr8tb-Scan{display:block;position:fixed;z-index:99999;left:0;top:0;width:100%;height:100%;overflow:auto;background-color:rgb(0, 0, 0);background-color:rgba(0, 0, 0, 0.4)}.modal-content.svelte-16wr8tb-Scan{background-color:#fefefe;margin:15% auto;padding:20px;border:1px solid #888;width:80%}.close.svelte-16wr8tb-Scan{color:#aaa;float:right;font-size:3.5em;font-weight:bold;line-height:0.5;padding:0.25em}.close.svelte-16wr8tb-Scan:hover,.close.svelte-16wr8tb-Scan:focus{color:black;text-decoration:none;cursor:pointer}");
 }
 
-function create_fragment$5(ctx) {
+function create_fragment$4(ctx) {
 	let div2;
 	let div1;
 	let span;
@@ -937,9 +645,9 @@ function create_fragment$5(ctx) {
 			t1 = space();
 			div0 = element("div");
 			if (default_slot) default_slot.c();
-			attr(span, "class", "close svelte-7dgeyu-ContactList");
-			attr(div1, "class", "modal-content svelte-7dgeyu-ContactList");
-			attr(div2, "class", "svelte-7dgeyu-ContactList");
+			attr(span, "class", "close svelte-16wr8tb-Scan");
+			attr(div1, "class", "modal-content svelte-16wr8tb-Scan");
+			attr(div2, "class", "svelte-16wr8tb-Scan");
 			toggle_class(div2, "modal", /*modal*/ ctx[0]);
 			toggle_class(div2, "hide", !/*modal*/ ctx[0]);
 		},
@@ -1003,7 +711,7 @@ function create_fragment$5(ctx) {
 	};
 }
 
-function instance$5($$self, $$props, $$invalidate) {
+function instance$4($$self, $$props, $$invalidate) {
 	let { $$slots: slots = {}, $$scope } = $$props;
 	let { modal } = $$props;
 	const dispatch = createEventDispatcher();
@@ -1031,7 +739,7 @@ function instance$5($$self, $$props, $$invalidate) {
 class Modal extends SvelteComponent {
 	constructor(options) {
 		super();
-		init(this, options, instance$5, create_fragment$5, safe_not_equal, { modal: 0 }, add_css$5);
+		init(this, options, instance$4, create_fragment$4, safe_not_equal, { modal: 0 }, add_css$4);
 	}
 
 	get modal() {
@@ -1046,8 +754,8 @@ class Modal extends SvelteComponent {
 
 /* src\lib\components\@peerpiper\Scan.svelte generated by Svelte v3.48.0 */
 
-function add_css$4(target) {
-	append_styles(target, "svelte-peip8n-ContactList", ".svelte-peip8n-ContactList,.svelte-peip8n-ContactList::before,.svelte-peip8n-ContactList::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#E5E7EB}.svelte-peip8n-ContactList::before,.svelte-peip8n-ContactList::after{--tw-content:''}.svelte-peip8n-ContactList:-moz-focusring{outline:auto}.svelte-peip8n-ContactList:-moz-ui-invalid{box-shadow:none}.svelte-peip8n-ContactList::-webkit-inner-spin-button,.svelte-peip8n-ContactList::-webkit-outer-spin-button{height:auto}.svelte-peip8n-ContactList::-webkit-search-decoration{-webkit-appearance:none}.svelte-peip8n-ContactList::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}.svelte-peip8n-ContactList:disabled{cursor:default}.svelte-peip8n-ContactList::-webkit-datetime-edit-fields-wrapper{padding:0}.svelte-peip8n-ContactList::-webkit-date-and-time-value{min-height:1.5em}.svelte-peip8n-ContactList{font-family:ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"Noto Sans\", sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"}.svelte-peip8n-ContactList,.svelte-peip8n-ContactList::before,.svelte-peip8n-ContactList::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(63 131 248 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-peip8n-ContactList::-webkit-backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(63 131 248 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-peip8n-ContactList::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(63 131 248 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.h-14.svelte-peip8n-ContactList{height:3.5rem}.w-auto.svelte-peip8n-ContactList{width:auto}@-webkit-keyframes svelte-peip8n-ContactList-spin{to{transform:rotate(360deg)}}@keyframes svelte-peip8n-ContactList-spin{to{transform:rotate(360deg)}}.cursor-pointer.svelte-peip8n-ContactList{cursor:pointer}.rounded.svelte-peip8n-ContactList{border-radius:0.25rem}.font-bold.svelte-peip8n-ContactList{font-weight:700}.text-slate-800.svelte-peip8n-ContactList{--tw-text-opacity:1;color:rgb(30 41 59 / var(--tw-text-opacity))}.transition.svelte-peip8n-ContactList{transition-property:color, background-color, border-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-text-decoration-color, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-text-decoration-color, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.duration-150.svelte-peip8n-ContactList{transition-duration:150ms}.ease-in-out.svelte-peip8n-ContactList{transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1)}.hover\\:scale-125.svelte-peip8n-ContactList:hover{--tw-scale-x:1.25;--tw-scale-y:1.25;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}");
+function add_css$3(target) {
+	append_styles(target, "svelte-rpxl0u-Scan", ".svelte-rpxl0u-Scan,.svelte-rpxl0u-Scan::before,.svelte-rpxl0u-Scan::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#E5E7EB}.svelte-rpxl0u-Scan::before,.svelte-rpxl0u-Scan::after{--tw-content:''}.svelte-rpxl0u-Scan:-moz-focusring{outline:auto}.svelte-rpxl0u-Scan:-moz-ui-invalid{box-shadow:none}.svelte-rpxl0u-Scan::-webkit-inner-spin-button,.svelte-rpxl0u-Scan::-webkit-outer-spin-button{height:auto}.svelte-rpxl0u-Scan::-webkit-search-decoration{-webkit-appearance:none}.svelte-rpxl0u-Scan::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}.svelte-rpxl0u-Scan:disabled{cursor:default}.svelte-rpxl0u-Scan::-webkit-datetime-edit-fields-wrapper{padding:0}.svelte-rpxl0u-Scan::-webkit-date-and-time-value{min-height:1.5em}.svelte-rpxl0u-Scan{font-family:ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"Noto Sans\", sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"}.svelte-rpxl0u-Scan,.svelte-rpxl0u-Scan::before,.svelte-rpxl0u-Scan::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(63 131 248 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-rpxl0u-Scan::-webkit-backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(63 131 248 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-rpxl0u-Scan::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(63 131 248 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.h-14.svelte-rpxl0u-Scan{height:3.5rem}.w-auto.svelte-rpxl0u-Scan{width:auto}@-webkit-keyframes svelte-rpxl0u-Scan-spin{to{transform:rotate(360deg)}}@keyframes svelte-rpxl0u-Scan-spin{to{transform:rotate(360deg)}}.cursor-pointer.svelte-rpxl0u-Scan{cursor:pointer}.rounded.svelte-rpxl0u-Scan{border-radius:0.25rem}.font-bold.svelte-rpxl0u-Scan{font-weight:700}.text-slate-800.svelte-rpxl0u-Scan{--tw-text-opacity:1;color:rgb(30 41 59 / var(--tw-text-opacity))}.transition.svelte-rpxl0u-Scan{transition-property:color, background-color, border-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-text-decoration-color, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-text-decoration-color, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.duration-150.svelte-rpxl0u-Scan{transition-duration:150ms}.ease-in-out.svelte-rpxl0u-Scan{transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1)}.hover\\:scale-125.svelte-rpxl0u-Scan:hover{--tw-scale-x:1.25;--tw-scale-y:1.25;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}");
 }
 
 // (33:0) {#if Scanner && scan}
@@ -1191,7 +899,7 @@ function create_default_slot(ctx) {
 	};
 }
 
-function create_fragment$4(ctx) {
+function create_fragment$3(ctx) {
 	let div;
 	let icon;
 	let t;
@@ -1209,7 +917,7 @@ function create_fragment$4(ctx) {
 			t = space();
 			if (if_block) if_block.c();
 			if_block_anchor = empty();
-			attr(div, "class", "text-slate-800 h-14 w-auto cursor-pointer font-bold rounded hover:scale-125 transition duration-150 ease-in-out svelte-peip8n-ContactList");
+			attr(div, "class", "text-slate-800 h-14 w-auto cursor-pointer font-bold rounded hover:scale-125 transition duration-150 ease-in-out svelte-rpxl0u-Scan");
 		},
 		m(target, anchor) {
 			insert(target, div, anchor);
@@ -1271,7 +979,7 @@ function create_fragment$4(ctx) {
 	};
 }
 
-function instance$4($$self, $$props, $$invalidate) {
+function instance$3($$self, $$props, $$invalidate) {
 	let { pubkey } = $$props;
 	let Scanner;
 	let scan;
@@ -1319,7 +1027,7 @@ function instance$4($$self, $$props, $$invalidate) {
 class Scan extends SvelteComponent {
 	constructor(options) {
 		super();
-		init(this, options, instance$4, create_fragment$4, safe_not_equal, { pubkey: 0 }, add_css$4);
+		init(this, options, instance$3, create_fragment$3, safe_not_equal, { pubkey: 0 }, add_css$3);
 	}
 
 	get pubkey() {
@@ -1328,330 +1036,6 @@ class Scan extends SvelteComponent {
 
 	set pubkey(pubkey) {
 		this.$$set({ pubkey });
-		flush();
-	}
-}
-
-/* src\lib\components\@peerpiper\ContactList.svelte generated by Svelte v3.48.0 */
-
-function add_css$3(target) {
-	append_styles(target, "svelte-119b1e2-ContactList", ".svelte-119b1e2-ContactList,.svelte-119b1e2-ContactList::before,.svelte-119b1e2-ContactList::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#E5E7EB}.svelte-119b1e2-ContactList::before,.svelte-119b1e2-ContactList::after{--tw-content:''}button.svelte-119b1e2-ContactList,input.svelte-119b1e2-ContactList{font-family:inherit;font-size:100%;font-weight:inherit;line-height:inherit;color:inherit;margin:0;padding:0}button.svelte-119b1e2-ContactList{text-transform:none}button.svelte-119b1e2-ContactList{-webkit-appearance:button;background-color:transparent;background-image:none}.svelte-119b1e2-ContactList:-moz-focusring{outline:auto}.svelte-119b1e2-ContactList:-moz-ui-invalid{box-shadow:none}.svelte-119b1e2-ContactList::-webkit-inner-spin-button,.svelte-119b1e2-ContactList::-webkit-outer-spin-button{height:auto}.svelte-119b1e2-ContactList::-webkit-search-decoration{-webkit-appearance:none}.svelte-119b1e2-ContactList::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}input.svelte-119b1e2-ContactList::-moz-placeholder{opacity:1;color:#9CA3AF}input.svelte-119b1e2-ContactList::placeholder{opacity:1;color:#9CA3AF}button.svelte-119b1e2-ContactList{cursor:pointer}.svelte-119b1e2-ContactList:disabled{cursor:default}[type='text'].svelte-119b1e2-ContactList{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:#fff;border-color:#6B7280;border-width:1px;border-radius:0px;padding-top:0.5rem;padding-right:0.75rem;padding-bottom:0.5rem;padding-left:0.75rem;font-size:1rem;line-height:1.5rem;--tw-shadow:0 0 #0000}[type='text'].svelte-119b1e2-ContactList:focus{outline:2px solid transparent;outline-offset:2px;--tw-ring-inset:var(--tw-empty,/*!*/ /*!*/);--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:#1C64F2;--tw-ring-offset-shadow:var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);--tw-ring-shadow:var(--tw-ring-inset) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color);box-shadow:var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);border-color:#1C64F2}input.svelte-119b1e2-ContactList::-moz-placeholder{color:#6B7280;opacity:1}input.svelte-119b1e2-ContactList::placeholder{color:#6B7280;opacity:1}.svelte-119b1e2-ContactList::-webkit-datetime-edit-fields-wrapper{padding:0}.svelte-119b1e2-ContactList::-webkit-date-and-time-value{min-height:1.5em}.svelte-119b1e2-ContactList{font-family:ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"Noto Sans\", sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"}.svelte-119b1e2-ContactList,.svelte-119b1e2-ContactList::before,.svelte-119b1e2-ContactList::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(63 131 248 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-119b1e2-ContactList::-webkit-backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(63 131 248 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-119b1e2-ContactList::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(63 131 248 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.m-4.svelte-119b1e2-ContactList{margin:1rem}.mx-4.svelte-119b1e2-ContactList{margin-left:1rem;margin-right:1rem}.ml-4.svelte-119b1e2-ContactList{margin-left:1rem}.mr-4.svelte-119b1e2-ContactList{margin-right:1rem}.flex.svelte-119b1e2-ContactList{display:flex}.w-auto.svelte-119b1e2-ContactList{width:auto}.w-full.svelte-119b1e2-ContactList{width:100%}.flex-1.svelte-119b1e2-ContactList{flex:1 1 0%}@-webkit-keyframes svelte-119b1e2-ContactList-spin{to{transform:rotate(360deg)}}@keyframes svelte-119b1e2-ContactList-spin{to{transform:rotate(360deg)}}.flex-row.svelte-119b1e2-ContactList{flex-direction:row}.items-center.svelte-119b1e2-ContactList{align-items:center}.break-all.svelte-119b1e2-ContactList{word-break:break-all}.rounded.svelte-119b1e2-ContactList{border-radius:0.25rem}.rounded-xl.svelte-119b1e2-ContactList{border-radius:0.75rem}.border-r-gray-400.svelte-119b1e2-ContactList{--tw-border-opacity:1;border-right-color:rgb(156 163 175 / var(--tw-border-opacity))}.bg-gray-50.svelte-119b1e2-ContactList{--tw-bg-opacity:1;background-color:rgb(249 250 251 / var(--tw-bg-opacity))}.bg-gray-100.svelte-119b1e2-ContactList{--tw-bg-opacity:1;background-color:rgb(243 244 246 / var(--tw-bg-opacity))}.bg-blue-500.svelte-119b1e2-ContactList{--tw-bg-opacity:1;background-color:rgb(63 131 248 / var(--tw-bg-opacity))}.p-4.svelte-119b1e2-ContactList{padding:1rem}.p-1.svelte-119b1e2-ContactList{padding:0.25rem}.py-2.svelte-119b1e2-ContactList{padding-top:0.5rem;padding-bottom:0.5rem}.px-4.svelte-119b1e2-ContactList{padding-left:1rem;padding-right:1rem}.text-center.svelte-119b1e2-ContactList{text-align:center}.font-sans.svelte-119b1e2-ContactList{font-family:ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"Noto Sans\", sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"}.font-mono.svelte-119b1e2-ContactList{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace}.font-bold.svelte-119b1e2-ContactList{font-weight:700}.text-white.svelte-119b1e2-ContactList{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity))}.shadow-xl.svelte-119b1e2-ContactList{--tw-shadow:0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 20px 25px -5px var(--tw-shadow-color), 0 8px 10px -6px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.hover\\:bg-blue-700.svelte-119b1e2-ContactList:hover{--tw-bg-opacity:1;background-color:rgb(26 86 219 / var(--tw-bg-opacity))}@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}");
-}
-
-function get_each_context(ctx, list, i) {
-	const child_ctx = ctx.slice();
-	child_ctx[9] = list[i];
-	return child_ctx;
-}
-
-// (48:1) {#each contacts as contact (contact)}
-function create_each_block(key_1, ctx) {
-	let div2;
-	let div0;
-	let t0_value = /*contact*/ ctx[9].handle + "";
-	let t0;
-	let t1;
-	let div1;
-	let t2_value = /*contact*/ ctx[9].pubkey + "";
-	let t2;
-	let t3;
-	let rect;
-	let stop_animation = noop;
-
-	return {
-		key: key_1,
-		first: null,
-		c() {
-			div2 = element("div");
-			div0 = element("div");
-			t0 = text(t0_value);
-			t1 = space();
-			div1 = element("div");
-			t2 = text(t2_value);
-			t3 = space();
-			attr(div0, "class", "flex-1 font-sans bg-gray-100 ml-4 p-4 border-r-gray-400 svelte-119b1e2-ContactList");
-			attr(div1, "class", "flex-1 font-mono bg-gray-100 mr-4 p-4 break-all svelte-119b1e2-ContactList");
-			attr(div2, "class", "flex flex-row mx-4 bg-gray-50 rounded p-4  svelte-119b1e2-ContactList");
-			this.first = div2;
-		},
-		m(target, anchor) {
-			insert(target, div2, anchor);
-			append(div2, div0);
-			append(div0, t0);
-			append(div2, t1);
-			append(div2, div1);
-			append(div1, t2);
-			append(div2, t3);
-		},
-		p(new_ctx, dirty) {
-			ctx = new_ctx;
-			if (dirty & /*contacts*/ 1 && t0_value !== (t0_value = /*contact*/ ctx[9].handle + "")) set_data(t0, t0_value);
-			if (dirty & /*contacts*/ 1 && t2_value !== (t2_value = /*contact*/ ctx[9].pubkey + "")) set_data(t2, t2_value);
-		},
-		r() {
-			rect = div2.getBoundingClientRect();
-		},
-		f() {
-			fix_position(div2);
-			stop_animation();
-		},
-		a() {
-			stop_animation();
-
-			stop_animation = create_animation(div2, rect, flip, {
-				delay: 250,
-				duration: 750,
-				easing: quintOut
-			});
-		},
-		d(detaching) {
-			if (detaching) detach(div2);
-		}
-	};
-}
-
-function create_fragment$3(ctx) {
-	let div7;
-	let div2;
-	let div0;
-	let t1;
-	let div1;
-	let scan;
-	let updating_pubkey;
-	let t2;
-	let div6;
-	let div3;
-	let input0;
-	let t3;
-	let div4;
-	let input1;
-	let t4;
-	let div5;
-	let button;
-	let t6;
-	let each_blocks = [];
-	let each_1_lookup = new Map();
-	let current;
-	let mounted;
-	let dispose;
-
-	function scan_pubkey_binding(value) {
-		/*scan_pubkey_binding*/ ctx[3](value);
-	}
-
-	let scan_props = {};
-
-	if (/*pubkey*/ ctx[2] !== void 0) {
-		scan_props.pubkey = /*pubkey*/ ctx[2];
-	}
-
-	scan = new Scan({ props: scan_props });
-	binding_callbacks.push(() => bind(scan, 'pubkey', scan_pubkey_binding));
-	let each_value = /*contacts*/ ctx[0];
-	const get_key = ctx => /*contact*/ ctx[9];
-
-	for (let i = 0; i < each_value.length; i += 1) {
-		let child_ctx = get_each_context(ctx, each_value, i);
-		let key = get_key(child_ctx);
-		each_1_lookup.set(key, each_blocks[i] = create_each_block(key, child_ctx));
-	}
-
-	return {
-		c() {
-			div7 = element("div");
-			div2 = element("div");
-			div0 = element("div");
-			div0.textContent = "Scan their PeerPiper Key to add";
-			t1 = space();
-			div1 = element("div");
-			create_component(scan.$$.fragment);
-			t2 = space();
-			div6 = element("div");
-			div3 = element("div");
-			input0 = element("input");
-			t3 = space();
-			div4 = element("div");
-			input1 = element("input");
-			t4 = space();
-			div5 = element("div");
-			button = element("button");
-			button.textContent = "Add";
-			t6 = space();
-
-			for (let i = 0; i < each_blocks.length; i += 1) {
-				each_blocks[i].c();
-			}
-
-			attr(div0, "class", "flex-1 svelte-119b1e2-ContactList");
-			attr(div1, "class", "flex-1 svelte-119b1e2-ContactList");
-			attr(div2, "class", "flex flex-row mx-4 bg-gray-50 rounded p-4 items-center text-center svelte-119b1e2-ContactList");
-			attr(input0, "type", "text");
-			attr(input0, "class", "w-full svelte-119b1e2-ContactList");
-			attr(input0, "placeholder", "@handle / nickname");
-			attr(div3, "class", "flex-1 font-sans bg-gray-100 ml-4 p-1 rounded-xl border-r-gray-400 svelte-119b1e2-ContactList");
-			attr(input1, "type", "text");
-			attr(input1, "class", "w-full svelte-119b1e2-ContactList");
-			attr(input1, "placeholder", "their public key");
-			attr(div4, "class", "flex-1 font-mono bg-gray-100 mr-4 p-1 rounded-xl svelte-119b1e2-ContactList");
-			attr(button, "class", "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow-xl svelte-119b1e2-ContactList");
-			attr(div5, "class", "svelte-119b1e2-ContactList");
-			attr(div6, "class", "flex flex-row mx-4 bg-gray-50 rounded p-4 items-center svelte-119b1e2-ContactList");
-			attr(div7, "class", "m-4 w-auto svelte-119b1e2-ContactList");
-		},
-		m(target, anchor) {
-			insert(target, div7, anchor);
-			append(div7, div2);
-			append(div2, div0);
-			append(div2, t1);
-			append(div2, div1);
-			mount_component(scan, div1, null);
-			append(div7, t2);
-			append(div7, div6);
-			append(div6, div3);
-			append(div3, input0);
-			set_input_value(input0, /*handle*/ ctx[1]);
-			append(div6, t3);
-			append(div6, div4);
-			append(div4, input1);
-			set_input_value(input1, /*pubkey*/ ctx[2]);
-			append(div6, t4);
-			append(div6, div5);
-			append(div5, button);
-			append(div7, t6);
-
-			for (let i = 0; i < each_blocks.length; i += 1) {
-				each_blocks[i].m(div7, null);
-			}
-
-			current = true;
-
-			if (!mounted) {
-				dispose = [
-					listen(input0, "input", /*input0_input_handler*/ ctx[4]),
-					listen(input1, "input", /*input1_input_handler*/ ctx[5]),
-					listen(button, "click", /*click_handler*/ ctx[6])
-				];
-
-				mounted = true;
-			}
-		},
-		p(ctx, [dirty]) {
-			const scan_changes = {};
-
-			if (!updating_pubkey && dirty & /*pubkey*/ 4) {
-				updating_pubkey = true;
-				scan_changes.pubkey = /*pubkey*/ ctx[2];
-				add_flush_callback(() => updating_pubkey = false);
-			}
-
-			scan.$set(scan_changes);
-
-			if (dirty & /*handle*/ 2 && input0.value !== /*handle*/ ctx[1]) {
-				set_input_value(input0, /*handle*/ ctx[1]);
-			}
-
-			if (dirty & /*pubkey*/ 4 && input1.value !== /*pubkey*/ ctx[2]) {
-				set_input_value(input1, /*pubkey*/ ctx[2]);
-			}
-
-			if (dirty & /*contacts*/ 1) {
-				each_value = /*contacts*/ ctx[0];
-				for (let i = 0; i < each_blocks.length; i += 1) each_blocks[i].r();
-				each_blocks = update_keyed_each(each_blocks, dirty, get_key, 1, ctx, each_value, each_1_lookup, div7, fix_and_destroy_block, create_each_block, null, get_each_context);
-				for (let i = 0; i < each_blocks.length; i += 1) each_blocks[i].a();
-			}
-		},
-		i(local) {
-			if (current) return;
-			transition_in(scan.$$.fragment, local);
-			current = true;
-		},
-		o(local) {
-			transition_out(scan.$$.fragment, local);
-			current = false;
-		},
-		d(detaching) {
-			if (detaching) detach(div7);
-			destroy_component(scan);
-
-			for (let i = 0; i < each_blocks.length; i += 1) {
-				each_blocks[i].d();
-			}
-
-			mounted = false;
-			run_all(dispose);
-		}
-	};
-}
-
-function instance$3($$self, $$props, $$invalidate) {
-	const dispatch = createEventDispatcher();
-	let handle, pubkey;
-
-	let defaultContact = {
-		pubkey: 'GnHDprayyzahnWjDqvQ9AGWsmjojWymVNztGHNr4S7an',
-		handle: 'douganderson444'
-	};
-
-	let { contacts = [defaultContact] } = $$props;
-
-	function scan_pubkey_binding(value) {
-		pubkey = value;
-		$$invalidate(2, pubkey);
-	}
-
-	function input0_input_handler() {
-		handle = this.value;
-		$$invalidate(1, handle);
-	}
-
-	function input1_input_handler() {
-		pubkey = this.value;
-		$$invalidate(2, pubkey);
-	}
-
-	const click_handler = () => {
-		if (!handle || !pubkey) return;
-		$$invalidate(0, contacts = [{ handle, pubkey }, ...contacts]);
-	};
-
-	$$self.$$set = $$props => {
-		if ('contacts' in $$props) $$invalidate(0, contacts = $$props.contacts);
-	};
-
-	$$self.$$.update = () => {
-		if ($$self.$$.dirty & /*contacts*/ 1) {
-			// this fires when todos change; let's emit an event to update any listeners consuming this component
-			if (contacts) {
-				dispatch('change', { contacts });
-				dispatch('loadContacts', contacts);
-			}
-		}
-	};
-
-	return [
-		contacts,
-		handle,
-		pubkey,
-		scan_pubkey_binding,
-		input0_input_handler,
-		input1_input_handler,
-		click_handler
-	];
-}
-
-class ContactList extends SvelteComponent {
-	constructor(options) {
-		super();
-		init(this, options, instance$3, create_fragment$3, safe_not_equal, { contacts: 0 }, add_css$3);
-	}
-
-	get contacts() {
-		return this.$$.ctx[0];
-	}
-
-	set contacts(contacts) {
-		this.$$set({ contacts });
 		flush();
 	}
 }
@@ -11793,7 +11177,7 @@ var jsQR = /*@__PURE__*/getDefaultExportFromCjs(jsQR$1.exports);
 /* ..\qrcode-scanner-svelte\src\lib\components\ScannerBorders.svelte generated by Svelte v3.48.0 */
 
 function add_css$2(target) {
-	append_styles(target, "svelte-yg5u4i-ContactList", ":root{--border-thickness:3px;--border-radius:40%;--border-offset:5%;--border-color:#cbf3f0}.scanner-border.svelte-yg5u4i-ContactList{position:absolute;width:20%;height:20%}.scanner-border--top-left.svelte-yg5u4i-ContactList{top:var(--border-offset);left:var(--border-offset);border-top:var(--border-thickness) solid var(--border-color);border-left:var(--border-thickness) solid var(--border-color);border-top-left-radius:var(--border-radius)}.scanner-border--top-right.svelte-yg5u4i-ContactList{top:var(--border-offset);right:var(--border-offset);border-top:var(--border-thickness) solid var(--border-color);border-right:var(--border-thickness) solid var(--border-color);border-top-right-radius:var(--border-radius)}.scanner-border--bottom-left.svelte-yg5u4i-ContactList{bottom:var(--border-offset);left:var(--border-offset);border-bottom:var(--border-thickness) solid var(--border-color);border-left:var(--border-thickness) solid var(--border-color);border-bottom-left-radius:var(--border-radius)}.scanner-border--bottom-right.svelte-yg5u4i-ContactList{right:var(--border-offset);bottom:var(--border-offset);border-right:var(--border-thickness) solid var(--border-color);border-bottom:var(--border-thickness) solid var(--border-color);border-bottom-right-radius:var(--border-radius)}");
+	append_styles(target, "svelte-ghukjt-Scan", ":root{--border-thickness:3px;--border-radius:40%;--border-offset:5%;--border-color:#cbf3f0}.scanner-border.svelte-ghukjt-Scan{position:absolute;width:20%;height:20%}.scanner-border--top-left.svelte-ghukjt-Scan{top:var(--border-offset);left:var(--border-offset);border-top:var(--border-thickness) solid var(--border-color);border-left:var(--border-thickness) solid var(--border-color);border-top-left-radius:var(--border-radius)}.scanner-border--top-right.svelte-ghukjt-Scan{top:var(--border-offset);right:var(--border-offset);border-top:var(--border-thickness) solid var(--border-color);border-right:var(--border-thickness) solid var(--border-color);border-top-right-radius:var(--border-radius)}.scanner-border--bottom-left.svelte-ghukjt-Scan{bottom:var(--border-offset);left:var(--border-offset);border-bottom:var(--border-thickness) solid var(--border-color);border-left:var(--border-thickness) solid var(--border-color);border-bottom-left-radius:var(--border-radius)}.scanner-border--bottom-right.svelte-ghukjt-Scan{right:var(--border-offset);bottom:var(--border-offset);border-right:var(--border-thickness) solid var(--border-color);border-bottom:var(--border-thickness) solid var(--border-color);border-bottom-right-radius:var(--border-radius)}");
 }
 
 function create_fragment$2(ctx) {
@@ -11803,10 +11187,10 @@ function create_fragment$2(ctx) {
 		c() {
 			div4 = element("div");
 
-			div4.innerHTML = `<div class="scanner-border scanner-border--top-left svelte-yg5u4i-ContactList"></div> 
-	<div class="scanner-border scanner-border--top-right svelte-yg5u4i-ContactList"></div> 
-	<div class="scanner-border scanner-border--bottom-left svelte-yg5u4i-ContactList"></div> 
-	<div class="scanner-border scanner-border--bottom-right svelte-yg5u4i-ContactList"></div>`;
+			div4.innerHTML = `<div class="scanner-border scanner-border--top-left svelte-ghukjt-Scan"></div> 
+	<div class="scanner-border scanner-border--top-right svelte-ghukjt-Scan"></div> 
+	<div class="scanner-border scanner-border--bottom-left svelte-ghukjt-Scan"></div> 
+	<div class="scanner-border scanner-border--bottom-right svelte-ghukjt-Scan"></div>`;
 		},
 		m(target, anchor) {
 			insert(target, div4, anchor);
@@ -11830,7 +11214,7 @@ class ScannerBorders extends SvelteComponent {
 /* ..\qrcode-scanner-svelte\src\lib\components\Results.svelte generated by Svelte v3.48.0 */
 
 function add_css$1(target) {
-	append_styles(target, "svelte-8prxng-ContactList", ".results.svelte-8prxng-ContactList{width:100%;max-width:500px}.results__data.svelte-8prxng-ContactList{margin:50px 0 80px 0;padding:20px 20px 27px 20px;word-break:break-all;border:2px dashed #3d3d3d;border-radius:20px;font-size:1.3rem}.results__empty.svelte-8prxng-ContactList{color:#959595;font-style:italic}.results__button-container.svelte-8prxng-ContactList{display:flex;justify-content:center}.results__button.svelte-8prxng-ContactList{display:flex;align-items:center;padding:14px 16px;cursor:pointer;transition-duration:300ms;transition-property:background-color, transform;color:white;border:0;border-radius:8px;background-color:#23cd00;font-size:1.5rem;font-weight:500}.results__button.svelte-8prxng-ContactList:hover{background-color:#39b300}.results__link.svelte-8prxng-ContactList,.results__link.svelte-8prxng-ContactList:visited{transition:color 200ms;color:#7094ff}.results__link.svelte-8prxng-ContactList:hover,.results__link.svelte-8prxng-ContactList:active{color:#486cd9}");
+	append_styles(target, "svelte-4p5ktx-Scan", ".results.svelte-4p5ktx-Scan{width:100%;max-width:500px}.results__data.svelte-4p5ktx-Scan{margin:50px 0 80px 0;padding:20px 20px 27px 20px;word-break:break-all;border:2px dashed #3d3d3d;border-radius:20px;font-size:1.3rem}.results__empty.svelte-4p5ktx-Scan{color:#959595;font-style:italic}.results__button-container.svelte-4p5ktx-Scan{display:flex;justify-content:center}.results__button.svelte-4p5ktx-Scan{display:flex;align-items:center;padding:14px 16px;cursor:pointer;transition-duration:300ms;transition-property:background-color, transform;color:white;border:0;border-radius:8px;background-color:#23cd00;font-size:1.5rem;font-weight:500}.results__button.svelte-4p5ktx-Scan:hover{background-color:#39b300}.results__link.svelte-4p5ktx-Scan,.results__link.svelte-4p5ktx-Scan:visited{transition:color 200ms;color:#7094ff}.results__link.svelte-4p5ktx-Scan:hover,.results__link.svelte-4p5ktx-Scan:active{color:#486cd9}");
 }
 
 const get_default_slot_changes$1 = dirty => ({ decodedData: dirty & /*decodedData*/ 1 });
@@ -11869,7 +11253,7 @@ function create_if_block_1(ctx) {
 		c() {
 			a = element("a");
 			t = text(/*decodedData*/ ctx[0]);
-			attr(a, "class", "results__link svelte-8prxng-ContactList");
+			attr(a, "class", "results__link svelte-4p5ktx-Scan");
 			attr(a, "href", /*decodedData*/ ctx[0]);
 			attr(a, "target", "_blank");
 			attr(a, "rel", "noopener noreferrer");
@@ -11899,7 +11283,7 @@ function create_if_block(ctx) {
 		c() {
 			span = element("span");
 			span.textContent = "Scan a QR Code to send data here.";
-			attr(span, "class", "results__empty svelte-8prxng-ContactList");
+			attr(span, "class", "results__empty svelte-4p5ktx-Scan");
 		},
 		m(target, anchor) {
 			insert(target, span, anchor);
@@ -11942,11 +11326,11 @@ function fallback_block$1(ctx) {
 			div1 = element("div");
 			button = element("button");
 			button.innerHTML = `<span>New Scan</span>`;
-			attr(div0, "class", "results__data svelte-8prxng-ContactList");
+			attr(div0, "class", "results__data svelte-4p5ktx-Scan");
 			attr(button, "type", "button");
-			attr(button, "class", "results__button svelte-8prxng-ContactList");
-			attr(div1, "class", "results__button-container svelte-8prxng-ContactList");
-			attr(div2, "class", "results svelte-8prxng-ContactList");
+			attr(button, "class", "results__button svelte-4p5ktx-Scan");
+			attr(div1, "class", "results__button-container svelte-4p5ktx-Scan");
+			attr(div2, "class", "results svelte-4p5ktx-Scan");
 		},
 		m(target, anchor) {
 			insert(target, div2, anchor);
@@ -12193,7 +11577,7 @@ class Use_usermedia extends SvelteComponent {
 /* ..\qrcode-scanner-svelte\src\lib\components\Scanner.svelte generated by Svelte v3.48.0 */
 
 function add_css(target) {
-	append_styles(target, "svelte-1drrksk-ContactList", ".scanner.svelte-1drrksk-ContactList{width:100%;max-width:500px}.scanner--hidden.svelte-1drrksk-ContactList{display:none}.scanner__aspect-ratio-container.svelte-1drrksk-ContactList{position:relative;overflow:hidden;padding-bottom:100%;border-radius:10%}.scanner__video.svelte-1drrksk-ContactList{position:absolute;top:0;left:0;width:100%;height:100%;border-radius:inherit;outline:none;-o-object-fit:cover;object-fit:cover}.scanner__canvas.svelte-1drrksk-ContactList{display:none}.scanner-tip.svelte-1drrksk-ContactList{display:flex;justify-content:center;margin-top:15px;font-size:0.8rem}");
+	append_styles(target, "svelte-160u61h-Scan", ".scanner.svelte-160u61h-Scan{width:100%;max-width:500px}.scanner--hidden.svelte-160u61h-Scan{display:none}.scanner__aspect-ratio-container.svelte-160u61h-Scan{position:relative;overflow:hidden;padding-bottom:100%;border-radius:10%}.scanner__video.svelte-160u61h-Scan{position:absolute;top:0;left:0;width:100%;height:100%;border-radius:inherit;outline:none;-o-object-fit:cover;object-fit:cover}.scanner__canvas.svelte-160u61h-Scan{display:none}.scanner-tip.svelte-160u61h-Scan{display:flex;justify-content:center;margin-top:15px;font-size:0.8rem}");
 }
 
 const get_default_slot_changes = dirty => ({ result: dirty & /*result*/ 1 });
@@ -12294,11 +11678,11 @@ function create_fragment(ctx) {
 			div2.innerHTML = `<div>Scan a QR code with your camera to see what it says.</div>`;
 			t5 = space();
 			if (default_slot_or_fallback) default_slot_or_fallback.c();
-			attr(canvas_1, "class", "scanner__canvas svelte-1drrksk-ContactList");
-			attr(video_1, "class", "scanner__video svelte-1drrksk-ContactList");
-			attr(div0, "class", "scanner__aspect-ratio-container svelte-1drrksk-ContactList");
-			attr(div2, "class", "scanner-tip svelte-1drrksk-ContactList");
-			attr(div3, "class", div3_class_value = "" + (null_to_empty(`scanner ${/*active*/ ctx[2] ? '' : 'scanner--hidden'}`) + " svelte-1drrksk-ContactList"));
+			attr(canvas_1, "class", "scanner__canvas svelte-160u61h-Scan");
+			attr(video_1, "class", "scanner__video svelte-160u61h-Scan");
+			attr(div0, "class", "scanner__aspect-ratio-container svelte-160u61h-Scan");
+			attr(div2, "class", "scanner-tip svelte-160u61h-Scan");
+			attr(div3, "class", div3_class_value = "" + (null_to_empty(`scanner ${/*active*/ ctx[2] ? '' : 'scanner--hidden'}`) + " svelte-160u61h-Scan"));
 		},
 		m(target, anchor) {
 			mount_component(usermedia, target, anchor);
@@ -12338,7 +11722,7 @@ function create_fragment(ctx) {
 
 			usermedia.$set(usermedia_changes);
 
-			if (!current || dirty & /*active*/ 4 && div3_class_value !== (div3_class_value = "" + (null_to_empty(`scanner ${/*active*/ ctx[2] ? '' : 'scanner--hidden'}`) + " svelte-1drrksk-ContactList"))) {
+			if (!current || dirty & /*active*/ 4 && div3_class_value !== (div3_class_value = "" + (null_to_empty(`scanner ${/*active*/ ctx[2] ? '' : 'scanner--hidden'}`) + " svelte-160u61h-Scan"))) {
 				attr(div3, "class", div3_class_value);
 			}
 
@@ -12550,4 +11934,4 @@ var index = /*#__PURE__*/Object.freeze({
     Scanner: Scanner$1
 });
 
-export { ContactList as default };
+export { Scan as default };
