@@ -1,0 +1,54 @@
+---
+layout: demo
+title: Manage Multiple Compiled Components
+library: 'Peerpiper'
+author: '@douganderson444'
+description:
+---
+
+<script>
+    import TagMaker from './TagManager.svelte';
+    // import { Peerpiper } from '@peerpiper/awesome-peerpiper-components';
+	// let esModule =
+	// 	'https://raw.githubusercontent.com/PeerPiper/awesome-peerpiper-components/master/compiled/%40peerpiper/ContactCard.svelte.js';
+
+	import esModule from '../../../../compiled/@peerpiper/ContactCard.svelte.js?raw';
+
+
+	export let params = [
+		{esModule, props:{profile:{"firstName":"Doug","lastName":"Anders"}}},
+		{esModule, props:{profile:{"firstName":"Joe","lastName":"Smith"}}},
+	] 
+
+</script>
+
+# Want to edit edit your data? Just make it TagManager!
+
+```svx
+<script>
+    // import TagManager from './TagManager.svelte';
+    import { Peerpiper } from '@peerpiper/awesome-peerpiper-components';
+	let esModule =
+		'https://raw.githubusercontent.com/PeerPiper/awesome-peerpiper-components/master/compiled/%40peerpiper/ContactCard.svelte.js';
+
+	export let params = [
+		{esModule, props:{profile:{"firstName":"Doug","lastName":"Anders"}}},
+		{esModule, props:{profile:{"firstName":"Joe","lastName":"Smith"}}},
+	]
+
+</script>
+
+<Peerpiper.TagManager slot="example" {params} on:change={e=>console.log(e.detail)} >
+</Peerpiper.TagManager>
+```
+
+## Notes
+
+If you want to be able to edit the property then pass the variable in as a prop.
+
+If you want to use this component to display data only, then use read-only modeby using slotted Content instead of props.
+
+When used with the Gateway, do not assign any action to `on:change`
+
+<Peerpiper.TagMaker slot="example" {params} on:change={e=>console.log(e.detail)} >
+</Peerpiper.TagMaker>

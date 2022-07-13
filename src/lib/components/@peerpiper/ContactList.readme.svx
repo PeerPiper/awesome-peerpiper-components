@@ -1,0 +1,28 @@
+---
+layout: demo
+title: Contact List
+library: 'Peerpiper'
+author: '@douganderson444'
+description:
+---
+
+<script>
+    // import ContactCard from './ContactCard.svelte';
+    import { Peerpiper } from '@peerpiper/awesome-peerpiper-components';
+
+	export let contacts
+
+</script>
+
+# Want to add Contacts? Just add them to ContactList!
+
+## Notes
+
+If you want to be able to edit the property then pass the variable in as a prop.
+
+If you want to use this component to display data only, then use read-only modeby using slotted Content instead of props.
+
+When used with the Gateway, do not assign any action to `on:change`
+
+<Peerpiper.ContactList slot="example" {contacts} on:change={e=>console.log(e.detail)} >
+</Peerpiper.ContactList>

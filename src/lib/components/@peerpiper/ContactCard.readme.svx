@@ -36,13 +36,16 @@ description:
 
 </script>
 
-<Peerpiper.ContactCard
-    {name}
-    {address}
-    {email}
-    {notes}
-    {address}
-    on:change />;
+
+<Peerpiper.ContactCard slot="example" {profile} on:change={e=>console.log(e.detail)} >
+
+<!-- Set address to read only, cannot edit "Pro" version is used -->
+<span slot="address">
+{profile.address} (Read Only)
+</span>
+
+</Peerpiper.ContactCard>
+
 ```
 
 ## Notes
@@ -55,7 +58,7 @@ When used with the Gateway, do not assign any action to `on:change`
 
 <Peerpiper.ContactCard slot="example" {profile} on:change={e=>console.log(e.detail)} >
 
-<!-- Set address to read only, cannot edit  -->
+<!-- Set address to read only, cannot edit "Pro" version is used -->
 <span slot="address">
 {profile.address} (Read Only)
 </span>

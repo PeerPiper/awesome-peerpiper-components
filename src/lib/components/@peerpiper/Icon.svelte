@@ -8,7 +8,7 @@
 <script>
 	import Icons from './Icons.svelte';
 	export let name;
-	export let size = 32;
+	export let size = '100%';
 </script>
 
 <svg width={size} height={size} class="icon ">
@@ -19,7 +19,9 @@
 
 <Icons />
 
-<style>
+<style lang="postcss">
+	/* svelte.config prepends app.css here */
+
 	.icon {
 		position: relative;
 		overflow: hidden;
@@ -29,7 +31,7 @@
 		-webkit-transform-origin: center center;
 		transform-origin: center center;
 		stroke: currentColor;
-		stroke-width: 2;
+		stroke-width: 1;
 		stroke-linecap: round;
 		stroke-linejoin: round;
 		fill: currentColor;

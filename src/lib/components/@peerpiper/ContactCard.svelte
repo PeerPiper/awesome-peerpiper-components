@@ -4,14 +4,14 @@
 <script>
 	import Changable from './Changable.svelte';
 	import Editable from './Editable.svelte';
-	import Content from './_ContactCard/Content.svelte';
-	// import '../../app.css';
+	import Content from './Content.svelte';
+	import ContextMenu from './ContextMenu.svelte';
+
 	import { createEventDispatcher } from 'svelte';
 
 	const dispatch = createEventDispatcher();
 
-	// you can use either props or slots with this component
-	export let profile = {
+	let defaultProfile = {
 		firstName: 'FirstName',
 		lastName: 'Lastname',
 		address: 'Unknown address',
@@ -21,8 +21,14 @@
 		avatar: null
 	};
 
+	// you can use either props or slots with this component
+	export let profile = defaultProfile;
+
 	// this fires when todos change; let's emit an event to update any listeners consuming this component
-	$: if (profile) dispatch('change', { profile });
+	$: if (profile) {
+		profile = Object.assign({}, defaultProfile, profile);
+		dispatch('change', { profile });
+	}
 
 	let fileinput;
 
@@ -37,9 +43,11 @@
 </script>
 
 <div
-	class="m-auto fill-slate-500 my-28 w-96 max-w-lg items-center justify-center overflow-hidden rounded-2xl bg-slate-100 shadow-xl"
+	class="m-auto fill-slate-500 my-2 w-96 max-w-lg items-center justify-center overflow-hidden rounded-2xl bg-slate-100 shadow-xl"
 >
-	<div class="h-24 bg-white" />
+	<div class="h-24 bg-white">
+		<ContextMenu on:change />
+	</div>
 	<input
 		style="display:none"
 		type="file"
@@ -118,9 +126,6 @@
 </div>
 
 <style lang="postcss">
+	/* use prepend in svelte.config instead of: */
 	/* @import '../../app.css'; */
-	/* Not need for npm run package ? */
-	@tailwind base;
-	@tailwind utilities;
-	@tailwind components;
 </style>
