@@ -9,6 +9,7 @@ import css from 'rollup-plugin-css-only';
 import copy from 'rollup-plugin-copy';
 import path, { dirname } from 'path';
 import { fileURLToPath } from 'url';
+import preprocessConfig from './svelte.preprocess.config.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -38,11 +39,10 @@ const config = components.map(({ namespace, component }) => ({
 	plugins: [
 		svelte({
 			preprocess: sveltePreprocess({
-				sourceMap: false,
-				// postcss: true,
+				sourceMap: process.env.NODE_ENV !== 'development',
 				postcss: {
 					configFilePath: path.resolve(__dirname, './postcss.config.js'),
-					prependData: `@import '${path.resolve('./src/lib/app.css')}';`
+					prependData: `@import '${path.resolve('./src/app.css')}';`
 				}
 			}),
 			compilerOptions: {
