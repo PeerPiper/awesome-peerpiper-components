@@ -15,14 +15,16 @@
 </script>
 
 <script>
-	import '$lib/app.css';
-	import '$lib/code.css'; // ayu-dark
+	// import '$lib/app.css';
+	import '../code.css'; // ayu-dark
 
 	// These props get filled in from the page's front matter
 	export let title;
 	export let author;
 	export let type = 'article';
 	export let coverImageUrl;
+
+	let contents; // contents passed by repl slot
 </script>
 
 <svelte:head>
@@ -47,7 +49,7 @@
 			<div class="relative rounded-xl overflow-auto p-8 ">
 				<div class="leading-6">
 					<div
-						class="flex items-center justify-center relative rounded-lg bg-stripes-green min-h-[196px]"
+						class="flex flex-col items-center justify-center relative rounded-lg bg-stripes-green min-h-[196px]"
 					>
 						<div
 							class="p-4 w-24 h-14 absolute -left-8 -top-8 flex items-center justify-center bg-green-300 shadow-lg rounded-lg"
@@ -66,6 +68,10 @@
 
 	Written by: {author}
 </article>
+
+<div style="display: none;">
+	<span bind:this={contents}><slot name="repl" /></span>
+</div>
 
 <style>
 	.bg-stripes-green {
